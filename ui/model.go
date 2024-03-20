@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"log"
+	"strings"
+
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -15,6 +18,7 @@ const (
 	StateAdd
 	StateEdit
 	StateFilter
+	StateHistory
 )
 
 const CHAR_LIMIT = 128
@@ -22,6 +26,7 @@ const CHAR_LIMIT = 128
 type Model struct {
 	state    State              // App State
 	filters  []string           // Filters for `task export`
+	history  []string           // History of filters
 	items    []string           // List of items, order preserved
 	tasks    map[string]tk.Task // Task by UUID
 	parents  map[string]string  // Parent by UUID
@@ -41,7 +46,7 @@ type Model struct {
 }
 
 // NewModel Initialize app state, get tasks based on filters
-func NewModel(filters []string) Model {
+func NewModel(filters []string, history []string) Model {
 	// Input for task
 	inputTask := textinput.New()
 	inputTask.Prompt = ""
@@ -60,6 +65,7 @@ func NewModel(filters []string) Model {
 	m := Model{
 		state:        StateHome,
 		filters:      filters,
+		history:      history,
 		inputTask:    inputTask,
 		inputFilters: inputFilters,
 		current:      0,
@@ -105,9 +111,22 @@ func (m *Model) Reload() {
 		m.err = err
 		return
 	}
-	tasks := make(map[string]tk.Task, len(list))
 
-	// Index parents
+	// Write to history if not already there
+	filter_line := strings.Join(m.filters, " ")
+	found := false
+	for _, line := range m.history {
+		if filter_line == line {
+			found = true
+			break
+		}
+	}
+	if !found {
+		log.Println(filter_line)
+	}
+
+	// Index tasks, parents
+	tasks := make(map[string]tk.Task, len(list))
 	parents := make(map[string]string, len(list))
 	for _, task := range list {
 		tasks[task.UUID] = task

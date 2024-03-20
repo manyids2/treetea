@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	tk "github.com/manyids2/tasktea/task"
 )
 
@@ -23,7 +24,14 @@ func (m Model) filtersView() string {
 // contentView Render indented task list, input if editing
 func (m Model) statusView() string {
 	padding := "    "
-	return fmt.Sprintf("\n%s%s%d tasks\n", padding, bar, len(m.items))
+	var content string
+	switch m.state {
+	case StateHistory:
+		content = fmt.Sprintf("\n%s%s%d filters\n", padding, bar, len(m.history))
+	default:
+		content = fmt.Sprintf("\n%s%s%d tasks\n", padding, bar, len(m.items))
+	}
+	return content
 }
 
 // contentView Render indented task list, input if editing
@@ -52,13 +60,59 @@ func (m Model) contentView() string {
 	return content
 }
 
+// contentView Render indented task list, input if editing
+func (m Model) historyView() string {
+	padding := "    "
+	content := ""
+	// Loop over items to preserve order
+	for i, filter := range m.history {
+		// Style for task
+		prefix := "  "
+		style := m.styles.normal
+
+		// Modify for current
+		if i == m.current {
+			prefix = m.styles.current.Render(bar)
+			style = m.styles.italic
+		}
+
+		// Final task line
+		content += padding + prefix + style.Render(filter) + "\n"
+	}
+	return content
+}
+
+func (m Model) helpView() string {
+	var content string
+	switch m.state {
+	case StateHistory:
+		content = m.help.ShortHelpView([]key.Binding{m.keys.Accept, m.keys.Cancel, m.keys.Quit})
+	default:
+		content = m.help.View(m.keys)
+	}
+	return content
+}
+
 // View Render complete UI
 func (m Model) View() string {
 	if m.quitting {
 		return ""
 	}
-	return "\n" + m.filtersView() + // Filter
-		"\n" + m.contentView() + // Tasks
-		m.statusView() + // Status
-		"\n" + m.help.View(m.keys) // Help
+
+	// Navbar
+	content := "\n" + m.filtersView()
+
+	// Content
+	switch m.state {
+	case StateHistory:
+		content += "\n" + m.historyView()
+	default:
+		content += "\n" + m.contentView()
+	}
+
+	// Status, help
+	content += m.statusView()
+	content += "\n" + m.helpView()
+
+	return content
 }

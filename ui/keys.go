@@ -15,6 +15,9 @@ type keyMap struct {
 	Edit       key.Binding
 	ToggleDone key.Binding
 	Filter     key.Binding
+	History    key.Binding
+	Accept     key.Binding
+	Cancel     key.Binding
 	Indent     key.Binding
 	Dedent     key.Binding
 
@@ -32,10 +35,10 @@ func (k keyMap) ShortHelp() []key.Binding {
 // key.Map interface.
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Up, k.Down, k.Top, k.Bottom}, // first column
-		{k.ToggleDone, k.View, k.Edit},  // second column
-		{k.Add, k.Indent, k.Dedent},     //third column
-		{k.Filter, k.Help, k.Quit},      // fourth column
+		{k.Up, k.Down, k.Top, k.Bottom},
+		{k.Filter, k.History, k.Help, k.Quit},
+		{k.ToggleDone, k.View, k.Edit},
+		{k.Add, k.Indent, k.Dedent},
 	}
 }
 
@@ -64,6 +67,14 @@ var keys = keyMap{
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "view"),
 	),
+	Accept: key.NewBinding(
+		key.WithKeys("enter"),
+		key.WithHelp("enter", "accept"),
+	),
+	Cancel: key.NewBinding(
+		key.WithKeys("esc"),
+		key.WithHelp("esc", "cancel"),
+	),
 	Add: key.NewBinding(
 		key.WithKeys("a"),
 		key.WithHelp("a", "add"),
@@ -84,12 +95,16 @@ var keys = keyMap{
 		key.WithKeys("/", "f"),
 		key.WithHelp("/", "filter"),
 	),
+	History: key.NewBinding(
+		key.WithKeys("h"),
+		key.WithHelp("h", "history"),
+	),
 	Help: key.NewBinding(
 		key.WithKeys("?"),
 		key.WithHelp("?", "toggle help"),
 	),
 	Quit: key.NewBinding(
-		key.WithKeys("q", "esc", "ctrl+c"),
+		key.WithKeys("q", "ctrl+c"),
 		key.WithHelp("q/esc", "quit"),
 	),
 }
