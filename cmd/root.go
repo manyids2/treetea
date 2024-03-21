@@ -3,11 +3,11 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"log"
+	// "log"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/manyids2/tasktea/ui"
+	ui "github.com/manyids2/tasktea/components/navbar"
 	"github.com/spf13/cobra"
 )
 
@@ -38,19 +38,25 @@ var taskTeaCmd = &cobra.Command{
 	Long: `Taskwarrior TUI.
 Set filters to view tasks as trees with dependencies.`,
 	Run: func(cmd *cobra.Command, filters []string) {
-		// Load history
-		history := LinesFromFile(history_path)
 
-		// Prep to write to history
-		f, err := os.OpenFile(history_path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		if err != nil {
-			log.Fatalf("error opening file: %v", err)
-		}
-		defer f.Close()
-		log.SetOutput(f)
-		log.SetFlags(0)
+		// // Load history
+		// history := LinesFromFile(history_path)
+		//
+		// // Prep to write to history
+		// f, err := os.OpenFile(history_path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		// if err != nil {
+		// 	log.Fatalf("error opening file: %v", err)
+		// }
+		// defer f.Close()
+		// log.SetOutput(f)
+		// log.SetFlags(0)
 
-		if _, err := tea.NewProgram(ui.NewModel(filters, history)).Run(); err != nil {
+		// if _, err := tea.NewProgram(ui.NewModel(filters, history)).Run(); err != nil {
+		// 	fmt.Printf("Could not start program :(\n%v\n", err)
+		// 	os.Exit(1)
+		// }
+
+		if _, err := tea.NewProgram(ui.NewModel("context", filters)).Run(); err != nil {
 			fmt.Printf("Could not start program :(\n%v\n", err)
 			os.Exit(1)
 		}
