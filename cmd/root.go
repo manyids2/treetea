@@ -7,7 +7,7 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	ui "github.com/manyids2/tasktea/components/navbar"
+	ui "github.com/manyids2/tasktea/components/app"
 	"github.com/spf13/cobra"
 )
 
