@@ -1,6 +1,9 @@
 package task
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // Datetime format of Taskwarrior
 type ISO8601 string
@@ -61,4 +64,23 @@ type Task struct {
 	Depends     []string          `json:"depends,omitempty"`
 	Tags        []string          `json:"tags,omitempty"`
 	Annotation  map[string]string `json:"annotation,omitempty"`
+}
+
+func (t Task) Key() string {
+	return t.UUID
+}
+
+func (t Task) Children() []string {
+	return t.Depends
+}
+
+func (t Task) String() string {
+	return fmt.Sprintf("%s %s", MARKERS["icon"][t.Status], t.Description)
+}
+
+func (t Task) Extra() string {
+	if t.Due == "" {
+		return ""
+	}
+	return fmt.Sprintf(" ( %s )", ISO8601_to_DateTime(t.Due).Format("06-01-02"))
 }

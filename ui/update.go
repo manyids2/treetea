@@ -43,7 +43,7 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 
 		// Bottom
 		case key.Matches(msg, m.keys.Bottom):
-			m.current = len(m.items) - 1
+			m.current = maxIdx - 1
 
 		// History
 		case key.Matches(msg, m.keys.History):

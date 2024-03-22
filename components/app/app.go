@@ -41,12 +41,20 @@ type Model struct {
 }
 
 func NewModel(context string, filters []string) Model {
-	items := []tk.Task{
-		tk.Task{UUID: "A"},
-		tk.Task{UUID: "B"},
-		tk.Task{UUID: "C", Depends: []string{"A"}},
+	// Get some tasks
+	tasks, _ := tk.List(filters)
+	items := []tree.Item{}
+	for _, t := range tasks {
+		items = append(items, t)
 	}
-	return Model{
+
+	// items := []tree.Item{
+	// 	tk.Task{UUID: "A"},
+	// 	tk.Task{UUID: "B"},
+	// 	tk.Task{UUID: "C", Depends: []string{"A"}},
+	// }
+
+	m := Model{
 		Context: context,
 		Filters: filters,
 		State:   StateHome,
@@ -60,6 +68,11 @@ func NewModel(context string, filters []string) Model {
 		help:    help.New(),
 		keys:    keys,
 	}
+
+	m.tree.Padding = m.Padding
+	m.nav.Padding = m.Padding
+
+	return m
 }
 
 func (m Model) Init() tea.Cmd {
@@ -70,10 +83,8 @@ func (m Model) View() string {
 	if m.quitting {
 		return ""
 	}
-	return m.nav.View() +
-		"\n\n" +
-		m.tree.View() +
-		"\n\n" +
+	return m.nav.View() + "\n" +
+		m.tree.View() + "\n" +
 		m.help.View(m.keys)
 }
 
@@ -97,6 +108,7 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 			m.State = StateFilter
 		}
 	}
+	m.tree, cmd = m.tree.Update(msg) // Handle keys for tree
 	return m, cmd
 }
 
