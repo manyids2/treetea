@@ -93,6 +93,19 @@ func (m Model) View() string {
 		m.help.View(m.keys)
 }
 
+func (m Model) toggleDone(msg tea.Msg) (Model, tea.Cmd) {
+	task := m.tree.CurrentItem().(tk.Task)
+	switch task.Status {
+	case "pending":
+		tk.SetStatus(task.UUID, "completed")
+		m.RunFilters()
+	case "completed":
+		tk.SetStatus(task.UUID, "pending")
+		m.RunFilters()
+	}
+	return m, nil
+}
+
 func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
@@ -111,6 +124,9 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 		case key.Matches(msg, keys.Filter):
 			m.nav.StartFilter()
 			m.State = StateFilter
+
+		case key.Matches(msg, m.keys.ToggleDone):
+			m, cmd = m.toggleDone(msg)
 		}
 	}
 	m.tree, cmd = m.tree.Update(msg) // Handle keys for tree

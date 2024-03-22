@@ -106,6 +106,7 @@ func New() Model {
 		Parents:  map[string]string{},
 		Levels:   map[string]int{},
 		Children: []string{},
+		Order:    []string{},
 
 		Width:   64,
 		Height:  1,
@@ -114,17 +115,24 @@ func New() Model {
 
 		State: StateHome,
 
-		Current: 0,
+		Current: -1,
 	}
 	return m
 }
 
 func (m *Model) Load(items Items) {
+	// Keep ref to old current key, account for first load
+	old_key := ""
+	if m.Current >= 0 {
+		old_key = m.Order[m.Current]
+	}
+
 	// Reset
 	m.Items = items
 	m.Parents = map[string]string{}
 	m.Levels = map[string]int{}
 	m.Children = []string{}
+	m.Order = []string{}
 
 	// Reverse tree to keep track of parents
 	for _, n := range m.Items {
@@ -141,10 +149,24 @@ func (m *Model) Load(items Items) {
 			m.Children = append(m.Children, n.Key())
 		}
 	}
+
+	// Really need a get for order as well
+	m.Current = 0
+	for idx, id := range m.Order {
+		if id == old_key {
+			m.Current = idx
+		}
+	}
 }
 
 func (m Model) Init() tea.Cmd {
 	return nil
+}
+
+func (m Model) CurrentItem() Item {
+	id := m.Order[m.Current]
+	item := m.Items.Get(id)
+	return item
 }
 
 func (m *Model) IndexLevels(id string, level int) {
