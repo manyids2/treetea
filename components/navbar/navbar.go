@@ -47,10 +47,10 @@ type Model struct {
 	err   error
 }
 
-func New(context string, filters []string) Model {
+func New() Model {
 	m := Model{
-		Context: context,
-		Filters: filters,
+		Context: "",
+		Filters: []string{},
 
 		Width:   64,
 		Height:  1,
@@ -63,8 +63,13 @@ func New(context string, filters []string) Model {
 	}
 	m.input.Prompt = ""
 	m.input.Placeholder = ""
-	m.input.SetValue(strings.Join(filters, " "))
 	return m
+}
+
+func (m *Model) Load(context string, filters []string) {
+	m.Context = context
+	m.Filters = filters
+	m.input.SetValue(strings.Join(filters, " "))
 }
 
 func (m Model) Init() tea.Cmd {

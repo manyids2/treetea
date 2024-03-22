@@ -30,24 +30,45 @@ func List(filters []string) ([]Task, error) {
 }
 
 // Parse current context
-func Context() string {
+func Context() (string, string, string) {
 	// Run context command
 	context := "none"
+	read_filters := ""
+	write_filters := ""
 	cmd := exec.Command("task", "context", "show")
 	out, err := cmd.Output()
 	if err != nil {
-		return context
+		return context, read_filters, write_filters
 	}
 
-	// Find in first line of output
+	// Split by lines
 	lines := strings.Split(string(out), "\n")
+
+	// Context name
 	r := regexp.MustCompile(`Context '(?P<Context>[a-zA-Z]+)' with`)
 	match := r.FindStringSubmatch(lines[0])
 	if len(match) != 2 {
-		return context
+		return context, read_filters, write_filters
 	}
 	context = match[1]
-	return context
+
+	// Read filter
+	r = regexp.MustCompile(`\* read filter: '(?P<ReadFilter>.*)'`)
+	match = r.FindStringSubmatch(lines[2])
+	if len(match) != 2 {
+		return context, read_filters, write_filters
+	}
+	read_filters = match[1]
+
+	// Write filter
+	r = regexp.MustCompile(`\* write filter: '(?P<WriteFilter>.*)'`)
+	match = r.FindStringSubmatch(lines[3])
+	if len(match) != 2 {
+		return context, read_filters, write_filters
+	}
+	write_filters = match[1]
+
+	return context, read_filters, write_filters
 }
 
 // SetStatus Set task status

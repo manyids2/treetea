@@ -1,6 +1,8 @@
 package app
 
 import (
+	"strings"
+
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -19,8 +21,12 @@ const (
 
 type Model struct {
 	// Input
-	Context string
 	Filters []string
+
+	// Context
+	Context      string
+	ReadFilters  string
+	WriteFilters string
 
 	// State
 	State    State
@@ -47,16 +53,15 @@ func tasksToItems(tasks []tk.Task) []tree.Item {
 	return items
 }
 
-func NewModel(context string, filters []string) Model {
+func NewModel(filters []string) Model {
 	m := Model{
-		Context: context,
 		Filters: filters,
 		State:   StateHome,
 		Width:   80,
 		Height:  1,
 		Padding: "  ",
 		Styles:  NewStyles(),
-		nav:     navbar.New(context, filters),
+		nav:     navbar.New(),
 		tree:    tree.New(),
 		help:    help.New(),
 		keys:    keys,
@@ -67,7 +72,8 @@ func NewModel(context string, filters []string) Model {
 	m.nav.Padding = m.Padding
 
 	// Get initial context, tasks
-	m.nav.Context = tk.Context()
+	m.Context, m.ReadFilters, m.WriteFilters = tk.Context()
+	m.nav.Load(m.Context, m.Filters)
 	m.RunFilters()
 
 	return m
@@ -78,7 +84,9 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m *Model) RunFilters() {
-	tasks, _ := tk.List(m.Filters)
+	read_filters := strings.Split(m.ReadFilters, " ")
+	read_filters = append(read_filters, m.Filters...)
+	tasks, _ := tk.List(read_filters)
 	items := tasksToItems(tasks)
 	m.tree.Load(items)
 }

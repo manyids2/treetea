@@ -56,7 +56,7 @@ Set filters to view tasks as trees with dependencies.`,
 		// 	os.Exit(1)
 		// }
 
-		if _, err := tea.NewProgram(ui.NewModel("context", filters)).Run(); err != nil {
+		if _, err := tea.NewProgram(ui.NewModel(filters)).Run(); err != nil {
 			fmt.Printf("Could not start program :(\n%v\n", err)
 			os.Exit(1)
 		}
