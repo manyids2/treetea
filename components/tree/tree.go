@@ -66,9 +66,9 @@ type Styles struct {
 func NewStyles() Styles {
 	return Styles{
 		CurrentIcon: lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Bold(true),
-		CurrentText: lgs.NewStyle().Background(lgs.Color(ccc.ColorMutedBackground)).Foreground(lgs.Color(ccc.ColorForeground)).Italic(true),
+		CurrentText: lgs.NewStyle().Background(lgs.Color(ccc.ColorEmphBackground)).Foreground(lgs.Color(ccc.ColorForeground)).Italic(true),
 		NormalIcon:  lgs.NewStyle().Foreground(lgs.Color(ccc.ColorMutedBackground)),
-		NormalText:  lgs.NewStyle().Foreground(lgs.Color(ccc.ColorForeground)),
+		NormalText:  lgs.NewStyle().Foreground(lgs.Color(ccc.ColorMutedForeground)),
 	}
 }
 
@@ -100,9 +100,9 @@ type Model struct {
 	Current int
 }
 
-func New(items Items) Model {
+func New() Model {
 	m := Model{
-		Items:    items,
+		Items:    Items{},
 		Parents:  map[string]string{},
 		Levels:   map[string]int{},
 		Children: []string{},
@@ -116,6 +116,15 @@ func New(items Items) Model {
 
 		Current: 0,
 	}
+	return m
+}
+
+func (m *Model) Load(items Items) {
+	// Reset
+	m.Items = items
+	m.Parents = map[string]string{}
+	m.Levels = map[string]int{}
+	m.Children = []string{}
 
 	// Reverse tree to keep track of parents
 	for _, n := range m.Items {
@@ -132,8 +141,6 @@ func New(items Items) Model {
 			m.Children = append(m.Children, n.Key())
 		}
 	}
-
-	return m
 }
 
 func (m Model) Init() tea.Cmd {
@@ -180,7 +187,7 @@ func (m Model) viewTree(id string, content string) string {
 	content += fmt.Sprintf("%s %s%s\n",
 		m.Padding,
 		m.viewIcon(id),
-		style.Render(fmt.Sprintf("%s%v", indent, n)))
+		style.Render(fmt.Sprintf("%s %v  ", indent, n)))
 
 	for _, v := range n.Children() {
 		content = m.viewTree(v, content)

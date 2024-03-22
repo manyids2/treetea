@@ -11,6 +11,7 @@ const (
 	// Foreground
 	ColorBackground      = "#151515"
 	ColorMutedBackground = "#442222"
+	ColorEmphBackground  = "#000000"
 	ColorForeground      = "#dddddd"
 	ColorMutedForeground = "#bbbbbb"
 

@@ -40,20 +40,15 @@ type Model struct {
 	keys   keyMap
 }
 
-func NewModel(context string, filters []string) Model {
-	// Get some tasks
-	tasks, _ := tk.List(filters)
+func tasksToItems(tasks []tk.Task) []tree.Item {
 	items := []tree.Item{}
 	for _, t := range tasks {
 		items = append(items, t)
 	}
+	return items
+}
 
-	// items := []tree.Item{
-	// 	tk.Task{UUID: "A"},
-	// 	tk.Task{UUID: "B"},
-	// 	tk.Task{UUID: "C", Depends: []string{"A"}},
-	// }
-
+func NewModel(context string, filters []string) Model {
 	m := Model{
 		Context: context,
 		Filters: filters,
@@ -64,19 +59,29 @@ func NewModel(context string, filters []string) Model {
 		Styles:  NewStyles(),
 		nav:     navbar.New(context, filters),
 		status:  statusbar.New(),
-		tree:    tree.New(items),
+		tree:    tree.New(),
 		help:    help.New(),
 		keys:    keys,
 	}
 
+	// How to add default passdown args?
 	m.tree.Padding = m.Padding
 	m.nav.Padding = m.Padding
+
+	// Get initial tasks
+	m.RunFilters()
 
 	return m
 }
 
 func (m Model) Init() tea.Cmd {
 	return nil
+}
+
+func (m *Model) RunFilters() {
+	tasks, _ := tk.List(m.Filters)
+	items := tasksToItems(tasks)
+	m.tree.Load(items)
 }
 
 func (m Model) View() string {
@@ -125,6 +130,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case navbar.ChangedMsg:
 		m.Filters = []string(msg)
 		m.State = StateHome
+		m.RunFilters()
 	}
 
 	switch m.State {
