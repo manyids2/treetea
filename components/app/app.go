@@ -66,7 +66,8 @@ func NewModel(context string, filters []string) Model {
 	m.tree.Padding = m.Padding
 	m.nav.Padding = m.Padding
 
-	// Get initial tasks
+	// Get initial context, tasks
+	m.nav.Context = tk.Context()
 	m.RunFilters()
 
 	return m

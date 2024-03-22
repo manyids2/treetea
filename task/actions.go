@@ -3,8 +3,8 @@ package task
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
@@ -29,12 +29,25 @@ func List(filters []string) ([]Task, error) {
 	return tasks_list, err
 }
 
-// View View functional for task
-func View(level int, status string, description string) string {
-	return fmt.Sprintf("%s%s %s",
-		strings.Repeat(" ", level*2), // Indent
-		MARKERS["icon"][status],      // Status marker
-		description)                  // Description
+// Parse current context
+func Context() string {
+	// Run context command
+	context := "none"
+	cmd := exec.Command("task", "context", "show")
+	out, err := cmd.Output()
+	if err != nil {
+		return context
+	}
+
+	// Find in first line of output
+	lines := strings.Split(string(out), "\n")
+	r := regexp.MustCompile(`Context '(?P<Context>[a-zA-Z]+)' with`)
+	match := r.FindStringSubmatch(lines[0])
+	if len(match) != 2 {
+		return context
+	}
+	context = match[1]
+	return context
 }
 
 // SetStatus Set task status
@@ -50,9 +63,6 @@ func LinkToParent(uuid string, parent string) error {
 	args := []string{parent, "modify", fmt.Sprintf("depends:%s", uuid)}
 	cmd := exec.Command("task", args...)
 	_, err := cmd.Output()
-	if err != nil {
-		log.Fatal("Failed adding task: ", err)
-	}
 	return err
 }
 
@@ -63,7 +73,7 @@ func UnlinkFromParent(uuid string, parent string, grandparent string, depends []
 	cmd := exec.Command("task", args...)
 	_, err := cmd.Output()
 	if err != nil {
-		log.Fatal("Failed removing dependencies: ", err, uuid, parent, depends)
+		return err
 	}
 
 	// Add back non uuid depends
@@ -75,7 +85,7 @@ func UnlinkFromParent(uuid string, parent string, grandparent string, depends []
 		cmd := exec.Command("task", args...)
 		_, err := cmd.Output()
 		if err != nil {
-			log.Fatal("Failed adding dep: ", err, uuid, parent, v, depends)
+			return err
 		}
 	}
 
@@ -85,7 +95,7 @@ func UnlinkFromParent(uuid string, parent string, grandparent string, depends []
 		cmd := exec.Command("task", args...)
 		_, err := cmd.Output()
 		if err != nil {
-			log.Fatal("Failed adding back uuid: ", err, uuid, parent, uuid, depends)
+			return err
 		}
 	}
 
@@ -124,10 +134,7 @@ func Add(filters []string, description string, parent string) (string, error) {
 	if parent != "" {
 		args = []string{parent, "modify", fmt.Sprintf("depends:%s", uuid)}
 		cmd := exec.Command("task", args...)
-		_, err := cmd.Output()
-		if err != nil {
-			return uuid, err
-		}
+		_, err = cmd.Output()
 	}
 	return uuid, err
 }
