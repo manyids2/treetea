@@ -4,8 +4,8 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/manyids2/tasktea/components/navbar"
-	"github.com/manyids2/tasktea/components/statusbar"
 	"github.com/manyids2/tasktea/components/tree"
 	tk "github.com/manyids2/tasktea/task"
 )
@@ -33,11 +33,10 @@ type Model struct {
 	Styles  Styles
 
 	// Components
-	nav    navbar.Model
-	status statusbar.Model
-	tree   tree.Model
-	help   help.Model
-	keys   keyMap
+	nav  navbar.Model
+	tree tree.Model
+	help help.Model
+	keys keyMap
 }
 
 func tasksToItems(tasks []tk.Task) []tree.Item {
@@ -58,7 +57,6 @@ func NewModel(context string, filters []string) Model {
 		Padding: "  ",
 		Styles:  NewStyles(),
 		nav:     navbar.New(context, filters),
-		status:  statusbar.New(),
 		tree:    tree.New(),
 		help:    help.New(),
 		keys:    keys,
@@ -139,6 +137,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 		m.Width = msg.Width
+		m.nav.Width = msg.Width
+		m.tree.Width = msg.Width
+		m.tree.Height = msg.Height - 10
 
 	case navbar.CancelledMsg:
 		m.State = StateHome

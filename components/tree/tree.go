@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/paginator"
 	tea "github.com/charmbracelet/bubbletea"
 	lgs "github.com/charmbracelet/lipgloss"
 	ccc "github.com/manyids2/tasktea/components/theme"
@@ -89,8 +90,10 @@ type Model struct {
 	Children []string          // Top level items
 	Order    []string          // Current viewing order
 
+	// State
 	State State
 
+	// Appearance
 	Width   int
 	Height  int
 	Padding string
@@ -98,6 +101,9 @@ type Model struct {
 
 	// Keeping track of the list
 	Current int
+
+	// Pages
+	pages paginator.Model
 }
 
 func New() Model {
@@ -108,15 +114,20 @@ func New() Model {
 		Children: []string{},
 		Order:    []string{},
 
-		Width:   64,
-		Height:  1,
+		Width:   80,
+		Height:  20,
 		Padding: "  ",
 		Styles:  NewStyles(),
 
 		State: StateHome,
 
 		Current: -1,
+
+		pages: paginator.New(),
 	}
+	m.pages.Type = paginator.Dots
+	m.pages.PerPage = 10 // statusbar
+	m.pages.SetTotalPages(len(m.Items))
 	return m
 }
 
@@ -157,6 +168,13 @@ func (m *Model) Load(items Items) {
 			m.Current = idx
 		}
 	}
+
+	// Update paginator
+	m.pages.PerPage = m.Height
+	m.pages.SetTotalPages(len(m.Items))
+
+	// Go to page of current - may need math
+	m.pages.Page = m.Current / m.pages.PerPage
 }
 
 func (m Model) Init() tea.Cmd {
@@ -195,33 +213,46 @@ func (m Model) viewIcon(id string) string {
 	return style.Render("  " + icon)
 }
 
-func (m Model) viewTree(id string, content string) string {
+func (m Model) viewPages() string {
+	style := m.Styles.NormalText
+	return style.Render(fmt.Sprintf("%d items", len(m.Items)))
+}
+
+func (m Model) viewItem(id string) string {
+	// Get data
 	n := m.Items.Get(id)
 
-	// Adjust for normal
-	indent := strings.Repeat("  ", m.Levels[id])
+	// Render
 	style := m.Styles.NormalText
 	if m.Order[m.Current] == id {
 		style = m.Styles.CurrentText
 	}
-
-	// Render
-	content += fmt.Sprintf("%s %s%s\n",
+	indent := strings.Repeat("  ", m.Levels[id])
+	content := fmt.Sprintf("%s %s%s\n",
 		m.Padding,
 		m.viewIcon(id),
 		style.Render(fmt.Sprintf("%s %v  ", indent, n)))
-
-	for _, v := range n.Children() {
-		content = m.viewTree(v, content)
-	}
 	return content
+
 }
 
 func (m Model) View() string {
 	content := "\n"
-	for _, v := range m.Children {
-		content = m.viewTree(v, content)
+	minIdx, maxIdx := m.pages.GetSliceBounds(len(m.Items))
+	for _, v := range m.Order[minIdx:maxIdx] {
+		content += m.viewItem(v)
 	}
+
+	content += fmt.Sprintf("\n%s %s%s\n",
+		m.Padding,
+		m.viewIcon(""),
+		m.viewPages(),
+	)
+
+	if m.pages.TotalPages > 1 {
+		content += fmt.Sprintf("\n%s   %s\n", m.Padding, m.pages.View())
+	}
+
 	return content
 }
 
@@ -232,6 +263,8 @@ type keyMap struct {
 	Down   key.Binding
 	Top    key.Binding
 	Bottom key.Binding
+	Left   key.Binding
+	Right  key.Binding
 }
 
 var keys = keyMap{
@@ -242,6 +275,14 @@ var keys = keyMap{
 	Down: key.NewBinding(
 		key.WithKeys("down", "j"),
 		key.WithHelp("↓/j", "move down"),
+	),
+	Left: key.NewBinding(
+		key.WithKeys("left", "h"),
+		key.WithHelp("←/h", "prev page"),
+	),
+	Right: key.NewBinding(
+		key.WithKeys("right", "l"),
+		key.WithHelp("→/l", "next page"),
 	),
 	Top: key.NewBinding(
 		key.WithKeys("t", "g"),
@@ -257,11 +298,14 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		maxIdx := len(m.Items)
+		// maxIdx := len(m.Items)
+		// minIdx := len(m.Items)
+		// on_page := m.Current - m.pages.PerPage * m.pages.Page
+		minIdx, maxIdx := m.pages.GetSliceBounds(len(m.Items))
 		switch {
 		// Up
 		case key.Matches(msg, keys.Up):
-			m.Current = max(m.Current-1, 0)
+			m.Current = max(m.Current-1, minIdx)
 
 		// Down
 		case key.Matches(msg, keys.Down):
@@ -269,11 +313,21 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 
 		// Top
 		case key.Matches(msg, keys.Top):
-			m.Current = 0
+			m.Current = minIdx
 
 		// Bottom
 		case key.Matches(msg, keys.Bottom):
 			m.Current = maxIdx - 1
+
+		// Top
+		case key.Matches(msg, keys.Left):
+			m.pages.PrevPage()
+			m.Current = m.pages.PerPage * m.pages.Page
+
+		// Bottom
+		case key.Matches(msg, keys.Right):
+			m.pages.NextPage()
+			m.Current = m.pages.PerPage * m.pages.Page
 		}
 	}
 	return m, cmd
@@ -281,6 +335,7 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
+
 	switch m.State {
 	case StateHome:
 		m, cmd = m.handleHome(msg)

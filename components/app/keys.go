@@ -10,6 +10,9 @@ type keyMap struct {
 	Top    key.Binding
 	Bottom key.Binding
 
+	Left  key.Binding
+	Right key.Binding
+
 	Quit   key.Binding
 	Filter key.Binding
 	Help   key.Binding
@@ -33,6 +36,14 @@ var keys = keyMap{
 	Bottom: key.NewBinding(
 		key.WithKeys("b", "G"),
 		key.WithHelp("b/G", "move to bottom"),
+	),
+	Left: key.NewBinding(
+		key.WithKeys("up", "k"),
+		key.WithHelp("←/h", "prev page"),
+	),
+	Right: key.NewBinding(
+		key.WithKeys("down", "j"),
+		key.WithHelp("→/l", "next page"),
 	),
 	Quit: key.NewBinding(
 		key.WithKeys("q", "esc", "ctrl+c"),
@@ -60,6 +71,7 @@ func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Filter, k.Help, k.Quit},
 		{k.Up, k.Down, k.Top, k.Bottom},
+		{k.Left, k.Right},
 		{k.ToggleDone},
 	}
 }
