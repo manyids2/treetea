@@ -47,7 +47,7 @@ type Model struct {
 	err   error
 }
 
-func NewModel(context string, filters []string) Model {
+func New(context string, filters []string) Model {
 	m := Model{
 		Context: context,
 		Filters: filters,

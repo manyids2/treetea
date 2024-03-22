@@ -6,6 +6,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/manyids2/tasktea/components/navbar"
 	"github.com/manyids2/tasktea/components/statusbar"
+	"github.com/manyids2/tasktea/components/tree"
+	tk "github.com/manyids2/tasktea/task"
 )
 
 type State int
@@ -33,11 +35,17 @@ type Model struct {
 	// Components
 	nav    navbar.Model
 	status statusbar.Model
+	tree   tree.Model
 	help   help.Model
 	keys   keyMap
 }
 
 func NewModel(context string, filters []string) Model {
+	items := []tk.Task{
+		tk.Task{UUID: "A"},
+		tk.Task{UUID: "B"},
+		tk.Task{UUID: "C", Depends: []string{"A"}},
+	}
 	return Model{
 		Context: context,
 		Filters: filters,
@@ -46,8 +54,9 @@ func NewModel(context string, filters []string) Model {
 		Height:  1,
 		Padding: "  ",
 		Styles:  NewStyles(),
-		nav:     navbar.NewModel(context, filters),
-		status:  statusbar.NewModel(),
+		nav:     navbar.New(context, filters),
+		status:  statusbar.New(),
+		tree:    tree.New(items),
 		help:    help.New(),
 		keys:    keys,
 	}
@@ -62,6 +71,8 @@ func (m Model) View() string {
 		return ""
 	}
 	return m.nav.View() +
+		"\n\n" +
+		m.tree.View() +
 		"\n\n" +
 		m.help.View(m.keys)
 }
