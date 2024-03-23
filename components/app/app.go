@@ -31,6 +31,7 @@ const (
 	StateEdit
 	StateModify
 	StateAdd
+	StateInit
 )
 
 type Model struct {
@@ -81,9 +82,9 @@ func contextsToItems(contexts []string) []tree.Item {
 func NewModel(filters []string) Model {
 	m := Model{
 		Filters:  filters,
-		State:    StateHome,
+		State:    StateInit,
 		Width:    80,
-		Height:   1,
+		Height:   40,
 		Padding:  "  ",
 		Styles:   NewStyles(),
 		nav:      navbar.New(),
@@ -137,7 +138,7 @@ func (m *Model) RunContexts() {
 }
 
 func (m Model) View() string {
-	if m.quitting {
+	if m.quitting || m.State == StateInit {
 		return ""
 	}
 	var content string
@@ -336,7 +337,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Width = msg.Width
 		m.nav.Width = msg.Width
 		m.tree.Width = msg.Width
-		m.tree.Height = msg.Height - 10
+		m.tree.Height = msg.Height - 20 // Help is looong
+		if m.State == StateInit {
+			m.State = StateHome
+		}
 
 	case navbar.CancelledMsg:
 		m.State = StateHome

@@ -80,7 +80,7 @@ func NewStyles() Styles {
 		EditIcon:    lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Bold(true),
 		EditText:    lgs.NewStyle().Background(lgs.Color(ccc.ColorEmphBackground)).Foreground(lgs.Color(ccc.ColorAlert)).Italic(true),
 		ExtraText:   lgs.NewStyle().Foreground(lgs.Color(ccc.ColorExtraForeground)).Italic(true),
-		ActiveText:  lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Italic(true),
+		ActiveText:  lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Bold(true),
 	}
 }
 
@@ -146,11 +146,17 @@ func New() Model {
 		input: textinput.New(),
 	}
 	m.pages.Type = paginator.Dots
-	m.pages.PerPage = 10 // statusbar
-	m.pages.SetTotalPages(len(m.Items))
+	m.pages.ActiveDot = ccc.IconActivePage
+	m.pages.InactiveDot = ccc.IconInactivePage
 	m.input.Prompt = ""
 	m.input.Placeholder = ""
+	m.setHeight(m.Height)
 	return m
+}
+
+func (m *Model) setHeight(height int) {
+	m.Height = height
+	m.pages.PerPage = height
 }
 
 func (m *Model) Load(items Items) {
@@ -192,7 +198,6 @@ func (m *Model) Load(items Items) {
 	}
 
 	// Update paginator
-	m.pages.PerPage = m.Height
 	m.pages.SetTotalPages(len(m.Items))
 
 	// Go to page of current - may need math
@@ -334,16 +339,22 @@ func (m Model) View() string {
 	for _, v := range m.Order[minIdx:maxIdx] {
 		content += m.viewItem(v)
 	}
+	for i := maxIdx - m.pages.Page*m.pages.PerPage; i < m.pages.PerPage; i++ {
+		content += "\n"
+	}
 
-	content += fmt.Sprintf("\n%s %s%s\n",
+	pages := ""
+	if m.pages.TotalPages > 1 {
+		pages = m.Styles.ExtraText.Render(fmt.Sprintf("%s  %d/%d  %s  \n",
+			m.Padding, m.pages.Page+1, m.pages.TotalPages, m.pages.View(),
+		))
+	}
+	content += fmt.Sprintf("\n%s %s%s%s\n",
 		m.Padding,
 		m.viewIcon(""),
 		m.viewPages(),
+		pages,
 	)
-
-	if m.pages.TotalPages > 1 {
-		content += fmt.Sprintf("\n%s   %s\n", m.Padding, m.pages.View())
-	}
 
 	return content
 }

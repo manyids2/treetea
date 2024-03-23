@@ -14,4 +14,7 @@ const (
 	IconStatusCompleted = " "
 	IconStatusWaiting   = "󰔛 "
 	IconStatusRecurring = "󰑐 "
+
+	IconActivePage   = "🬋║🬋"
+	IconInactivePage = "🬋🬋🬋"
 )
