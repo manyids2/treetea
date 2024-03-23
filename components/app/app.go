@@ -18,6 +18,7 @@ const (
 	StateHome = iota
 	StateFilter
 	StateContext
+	StateEdit
 )
 
 type Model struct {
@@ -171,8 +172,13 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 			m.nav.StartFilter()
 			m.State = StateFilter
 
-		case key.Matches(msg, keys.ToggleDone):
+		// Done
+		case key.Matches(msg, keys.Done):
 			return m.toggleDone(msg)
+
+		// Edit
+		case key.Matches(msg, keys.Edit):
+			m.State = StateEdit
 		}
 	}
 	m.tree, cmd = m.tree.Update(msg) // Handle keys for tree
@@ -192,8 +198,8 @@ func (m Model) handleContext(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
-		// Quit
-		case key.Matches(msg, keys.Quit):
+		// Quit only q, ctrl-c
+		case key.Matches(msg, keys.QuitQ):
 			m.quitting = true
 			return m, tea.Quit
 
@@ -206,9 +212,19 @@ func (m Model) handleContext(msg tea.Msg) (Model, tea.Cmd) {
 			m.State = StateHome
 			return m, nil
 
+		// Accept context
 		case key.Matches(msg, m.keys.Accept):
 			m.State = StateHome
 			return m.selectContext(msg)
+
+		// Dont allow edit
+		case key.Matches(msg, m.keys.Edit):
+			return m, nil
+
+		// Cancel context
+		case key.Matches(msg, m.keys.Cancel):
+			m.State = StateHome
+			return m, nil
 		}
 	}
 	m.contexts, cmd = m.contexts.Update(msg) // Handle keys for contexts
@@ -232,15 +248,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Filters = []string(msg)
 		m.State = StateHome
 		m.RunFilters()
+
+	case tree.CancelledMsg:
+		m.State = StateHome
+
+	case tree.ChangedMsg:
+		m.State = StateHome
+		task := m.tree.CurrentItem().(tk.Task)
+		desc := string(msg)
+		tk.ModifyDescription(task.UUID, desc)
+		m.RunFilters() // Basically just reload
 	}
 
 	switch m.State {
 	case StateHome:
 		m, cmd = m.handleHome(msg)
-	case StateFilter:
-		m.nav, cmd = m.nav.Update(msg) // Delegate to nav
 	case StateContext:
 		m, cmd = m.handleContext(msg)
+	case StateFilter:
+		m.nav, cmd = m.nav.Update(msg) // Delegate to nav
+	case StateEdit:
+		m.tree, cmd = m.tree.Update(msg) // Delegate to tree
 	default: // should never occur
 	}
 

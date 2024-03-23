@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/paginator"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	lgs "github.com/charmbracelet/lipgloss"
 	ccc "github.com/manyids2/tasktea/components/theme"
@@ -30,6 +31,7 @@ func min(a, b int) int {
 // Assumed item interface
 type Item interface {
 	Key() string
+	Val() string
 	Children() []string
 }
 
@@ -58,18 +60,22 @@ func (t Items) Index(key string) int {
 
 // --- Style ---
 type Styles struct {
-	CurrentIcon lgs.Style
-	CurrentText lgs.Style
 	NormalIcon  lgs.Style
 	NormalText  lgs.Style
+	CurrentIcon lgs.Style
+	CurrentText lgs.Style
+	EditIcon    lgs.Style
+	EditText    lgs.Style
 }
 
 func NewStyles() Styles {
 	return Styles{
-		CurrentIcon: lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Bold(true),
-		CurrentText: lgs.NewStyle().Background(lgs.Color(ccc.ColorEmphBackground)).Foreground(lgs.Color(ccc.ColorForeground)).Italic(true),
 		NormalIcon:  lgs.NewStyle().Foreground(lgs.Color(ccc.ColorMutedBackground)),
 		NormalText:  lgs.NewStyle().Foreground(lgs.Color(ccc.ColorMutedForeground)),
+		CurrentIcon: lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Bold(true),
+		CurrentText: lgs.NewStyle().Background(lgs.Color(ccc.ColorEmphBackground)).Foreground(lgs.Color(ccc.ColorForeground)).Italic(true),
+		EditIcon:    lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Bold(true),
+		EditText:    lgs.NewStyle().Background(lgs.Color(ccc.ColorEmphBackground)).Foreground(lgs.Color(ccc.ColorAlert)).Italic(true),
 	}
 }
 
@@ -78,7 +84,7 @@ type State int
 
 const (
 	StateHome = iota
-	StateNew
+	StateAdd
 	StateEdit
 )
 
@@ -104,6 +110,8 @@ type Model struct {
 
 	// Pages
 	pages paginator.Model
+	input textinput.Model
+	err   error
 }
 
 func New() Model {
@@ -124,10 +132,13 @@ func New() Model {
 		Current: -1,
 
 		pages: paginator.New(),
+		input: textinput.New(),
 	}
 	m.pages.Type = paginator.Dots
 	m.pages.PerPage = 10 // statusbar
 	m.pages.SetTotalPages(len(m.Items))
+	m.input.Prompt = ""
+	m.input.Placeholder = ""
 	return m
 }
 
@@ -230,14 +241,31 @@ func (m Model) viewItem(id string) string {
 
 	// Render
 	style := m.Styles.NormalText
+	text := fmt.Sprintf("%v", n)
 	if m.Order[m.Current] == id {
 		style = m.Styles.CurrentText
+		if m.State == StateEdit {
+			style = m.Styles.EditText
+			text = m.input.View()
+		}
 	}
 	indent := strings.Repeat("  ", m.Levels[id])
-	content := fmt.Sprintf("%s %s%s\n",
-		m.Padding,
-		m.viewIcon(id),
-		style.Render(fmt.Sprintf("%s %v  ", indent, n)))
+
+	var content string
+	switch m.State {
+	// Edit
+	case StateEdit:
+		content = fmt.Sprintf("%s %s%s\n",
+			m.Padding,
+			m.viewIcon(id),
+			style.Render(fmt.Sprintf("%s %s  ", indent, text)))
+	// Home
+	default:
+		content = fmt.Sprintf("%s %s%s\n",
+			m.Padding,
+			m.viewIcon(id),
+			style.Render(fmt.Sprintf("%s %s  ", indent, text)))
+	}
 	return content
 
 }
@@ -276,6 +304,7 @@ type keyMap struct {
 	Bottom key.Binding
 	Left   key.Binding
 	Right  key.Binding
+	Edit   key.Binding
 }
 
 var keys = keyMap{
@@ -303,15 +332,62 @@ var keys = keyMap{
 		key.WithKeys("b", "G"),
 		key.WithHelp("b/G", "move to bottom"),
 	),
+	Edit: key.NewBinding(
+		key.WithKeys("e"),
+		key.WithHelp("e", "edit"),
+	),
+}
+
+// Returns current input value
+type ChangedMsg string
+type CancelledMsg string
+type errMsg error
+
+func changedInput(m Model) tea.Cmd {
+	return func() tea.Msg {
+		return ChangedMsg(m.input.Value())
+	}
+}
+
+func cancelInput(m Model) tea.Cmd {
+	return func() tea.Msg {
+		task := m.CurrentItem()
+		m.input.SetValue(task.Val())
+		return CancelledMsg(m.input.Value()) //
+	}
+}
+
+func (m *Model) StartEdit() {
+	task := m.CurrentItem()
+	m.input.Placeholder = task.Val()
+	m.input.SetValue(task.Val())
+	m.input.Focus()
+}
+
+func (m Model) handleEdit(msg tea.Msg) (Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyEnter:
+			m.State = StateHome
+			return m, changedInput(m)
+		case tea.KeyCtrlC, tea.KeyEsc:
+			m.State = StateHome
+			return m, cancelInput(m)
+		}
+	case errMsg:
+		m.err = msg
+		return m, nil
+	}
+	m.input, cmd = m.input.Update(msg)
+	return m, cmd
 }
 
 func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		// maxIdx := len(m.Items)
-		// minIdx := len(m.Items)
-		// on_page := m.Current - m.pages.PerPage * m.pages.Page
 		minIdx, maxIdx := m.pages.GetSliceBounds(len(m.Items))
 		switch {
 		// Up
@@ -339,6 +415,11 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 		case key.Matches(msg, keys.Right):
 			m.pages.NextPage()
 			m.Current = m.pages.PerPage * m.pages.Page
+
+		// Edit
+		case key.Matches(msg, keys.Edit):
+			m.State = StateEdit
+			m.StartEdit()
 		}
 	}
 	return m, cmd
@@ -350,6 +431,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch m.State {
 	case StateHome:
 		m, cmd = m.handleHome(msg)
+	case StateEdit:
+		m, cmd = m.handleEdit(msg)
 	default: // should never occur
 	}
 	return m, cmd

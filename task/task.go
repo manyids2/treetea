@@ -70,6 +70,10 @@ func (t Task) Key() string {
 	return t.UUID
 }
 
+func (t Task) Val() string {
+	return t.Description
+}
+
 func (t Task) Children() []string {
 	return t.Depends
 }
@@ -89,6 +93,10 @@ func (t Task) Extra() string {
 type ContextS string
 
 func (c ContextS) Key() string {
+	return string(c)
+}
+
+func (c ContextS) Val() string {
 	return string(c)
 }
 

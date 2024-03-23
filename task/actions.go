@@ -181,3 +181,11 @@ func Add(filters []string, description string, parent string) (string, error) {
 	}
 	return uuid, err
 }
+
+// Modify task description
+func ModifyDescription(uuid string, description string) error {
+	args := []string{uuid, "modify", fmt.Sprintf("'%s'", description)}
+	cmd := exec.Command("task", args...)
+	_, err := cmd.Output()
+	return err
+}
