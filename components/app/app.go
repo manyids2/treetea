@@ -199,7 +199,26 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 		// Delete
 		case key.Matches(msg, keys.Delete):
 			return m.deleteTask(msg)
+
+		// Toggle tags
+		case key.Matches(msg, keys.TagsShow):
+			if m.tree.Extra == "" {
+				m.tree.Extra = "tags"
+			} else {
+				m.tree.Extra = ""
+			}
+			return m, nil
+
+		// Toggle due
+		case key.Matches(msg, keys.DueShow):
+			if m.tree.Extra == "" {
+				m.tree.Extra = "due"
+			} else {
+				m.tree.Extra = ""
+			}
+			return m, nil
 		}
+
 	}
 	m.tree, cmd = m.tree.Update(msg) // Handle keys for tree
 	return m, cmd

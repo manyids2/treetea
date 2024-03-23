@@ -33,6 +33,7 @@ type Item interface {
 	Key() string
 	Val() string
 	Children() []string
+	Extra(string) string
 }
 
 // Can later generalize
@@ -66,6 +67,7 @@ type Styles struct {
 	CurrentText lgs.Style
 	EditIcon    lgs.Style
 	EditText    lgs.Style
+	ExtraText   lgs.Style
 }
 
 func NewStyles() Styles {
@@ -76,6 +78,7 @@ func NewStyles() Styles {
 		CurrentText: lgs.NewStyle().Background(lgs.Color(ccc.ColorEmphBackground)).Foreground(lgs.Color(ccc.ColorForeground)).Italic(true),
 		EditIcon:    lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Bold(true),
 		EditText:    lgs.NewStyle().Background(lgs.Color(ccc.ColorEmphBackground)).Foreground(lgs.Color(ccc.ColorAlert)).Italic(true),
+		ExtraText:   lgs.NewStyle().Foreground(lgs.Color(ccc.ColorExtraForeground)),
 	}
 }
 
@@ -95,6 +98,7 @@ type Model struct {
 	Parents  map[string]string // Reverse tree
 	Children []string          // Top level items
 	Order    []string          // Current viewing order
+	Extra    string            // Extra info to show for each item
 
 	// State
 	State State
@@ -283,10 +287,15 @@ func (m Model) viewItem(id string) string {
 		)
 
 	default:
-		content = fmt.Sprintf("%s %s%s\n",
+		extra := ""
+		if m.Extra != "" {
+			extra = n.Extra(m.Extra)
+		}
+		content = fmt.Sprintf("%s %s%s%s\n",
 			m.Padding,
 			m.viewIcon(id),
-			style.Render(fmt.Sprintf("%s %s  ", indent, text)))
+			style.Render(fmt.Sprintf("%s %s  ", indent, text)),
+			m.Styles.ExtraText.Render(extra))
 	}
 	return content
 

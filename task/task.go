@@ -2,6 +2,7 @@ package task
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -82,11 +83,20 @@ func (t Task) String() string {
 	return fmt.Sprintf("%s %s", MARKERS["icon"][t.Status], t.Description)
 }
 
-func (t Task) Extra() string {
-	if t.Due == "" {
-		return ""
+func (t Task) Extra(name string) string {
+	switch name {
+	case "due":
+		if t.Due == "" {
+			return ""
+		}
+		return fmt.Sprintf("    | %s", ISO8601_to_DateTime(t.Due).Format("1 Feb"))
+	case "tags":
+		if len(t.Tags) == 0 {
+			return ""
+		}
+		return "    | " + strings.Join(t.Tags, " ")
 	}
-	return fmt.Sprintf(" ( %s )", ISO8601_to_DateTime(t.Due).Format("06-01-02"))
+	return ""
 }
 
 // Context struct
@@ -100,6 +110,10 @@ func (c ContextS) Val() string {
 	return string(c)
 }
 
-func (t ContextS) Children() []string {
+func (c ContextS) Children() []string {
 	return []string{}
+}
+
+func (c ContextS) Extra(string) string {
+	return ""
 }

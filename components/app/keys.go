@@ -25,6 +25,9 @@ type keyMap struct {
 	AddSibling key.Binding
 	Delete     key.Binding
 
+	TagsShow key.Binding
+	DueShow  key.Binding
+
 	Accept key.Binding
 	Cancel key.Binding
 }
@@ -98,6 +101,16 @@ var keys = keyMap{
 		key.WithHelp("D", "delete task"),
 	),
 
+	// Toggles
+	TagsShow: key.NewBinding(
+		key.WithKeys("ctrl+t"),
+		key.WithHelp("ctrl+t", "show tags"),
+	),
+	DueShow: key.NewBinding(
+		key.WithKeys("ctrl+d"),
+		key.WithHelp("ctrl+d", "show due"),
+	),
+
 	// Global
 	Quit: key.NewBinding(
 		key.WithKeys("q", "esc", "ctrl+c"),
@@ -122,5 +135,6 @@ func (k keyMap) FullHelp() [][]key.Binding {
 		{k.Help, k.Quit, k.Filter, k.Context, k.Accept, k.Cancel},
 		{k.Up, k.Down, k.Top, k.Bottom, k.Left, k.Right},
 		{k.Done, k.Edit, k.AddChild, k.AddSibling, k.Delete},
+		{k.TagsShow, k.DueShow},
 	}
 }

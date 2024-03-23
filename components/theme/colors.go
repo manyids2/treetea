@@ -14,6 +14,7 @@ const (
 	ColorEmphBackground  = "#000000"
 	ColorForeground      = "#dddddd"
 	ColorMutedForeground = "#bbbbbb"
+	ColorExtraForeground = "#888888"
 
 	// --- LIGHT THEME ---
 
