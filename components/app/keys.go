@@ -27,6 +27,7 @@ type keyMap struct {
 	AddChild   key.Binding
 	AddSibling key.Binding
 	Delete     key.Binding
+	Select     key.Binding
 
 	TagsShow key.Binding
 	DueShow  key.Binding
@@ -115,6 +116,10 @@ var keys = keyMap{
 	Delete: key.NewBinding(
 		key.WithKeys("ctrl+x"),
 		key.WithHelp("ctrl+x", "delete task"),
+	),
+	Select: key.NewBinding(
+		key.WithKeys("r"),
+		key.WithHelp("r", "select"),
 	),
 
 	// Toggles

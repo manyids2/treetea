@@ -61,26 +61,30 @@ func (t Items) Index(key string) int {
 
 // --- Style ---
 type Styles struct {
-	NormalIcon  lgs.Style
-	NormalText  lgs.Style
-	CurrentIcon lgs.Style
-	CurrentText lgs.Style
-	EditIcon    lgs.Style
-	EditText    lgs.Style
-	ExtraText   lgs.Style
-	ActiveText  lgs.Style
+	NormalIcon   lgs.Style
+	NormalText   lgs.Style
+	CurrentIcon  lgs.Style
+	CurrentText  lgs.Style
+	EditIcon     lgs.Style
+	EditText     lgs.Style
+	ExtraText    lgs.Style
+	ActiveText   lgs.Style
+	SelectedIcon lgs.Style
+	SelectedText lgs.Style
 }
 
 func NewStyles() Styles {
 	return Styles{
-		NormalIcon:  lgs.NewStyle().Foreground(lgs.Color(ccc.ColorMutedBackground)),
-		NormalText:  lgs.NewStyle().Foreground(lgs.Color(ccc.ColorMutedForeground)),
-		CurrentIcon: lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Bold(true),
-		CurrentText: lgs.NewStyle().Background(lgs.Color(ccc.ColorEmphBackground)).Foreground(lgs.Color(ccc.ColorForeground)).Italic(true),
-		EditIcon:    lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Bold(true),
-		EditText:    lgs.NewStyle().Background(lgs.Color(ccc.ColorEmphBackground)).Foreground(lgs.Color(ccc.ColorAlert)).Italic(true),
-		ExtraText:   lgs.NewStyle().Foreground(lgs.Color(ccc.ColorExtraForeground)).Italic(true),
-		ActiveText:  lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Bold(true),
+		NormalIcon:   lgs.NewStyle().Foreground(lgs.Color(ccc.ColorMutedBackground)),
+		NormalText:   lgs.NewStyle().Foreground(lgs.Color(ccc.ColorMutedForeground)),
+		CurrentIcon:  lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Bold(true),
+		CurrentText:  lgs.NewStyle().Background(lgs.Color(ccc.ColorEmphBackground)).Foreground(lgs.Color(ccc.ColorForeground)).Italic(true),
+		EditIcon:     lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Bold(true),
+		EditText:     lgs.NewStyle().Background(lgs.Color(ccc.ColorEmphBackground)).Foreground(lgs.Color(ccc.ColorAlert)).Italic(true),
+		ExtraText:    lgs.NewStyle().Foreground(lgs.Color(ccc.ColorExtraForeground)).Italic(true),
+		ActiveText:   lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Bold(true),
+		SelectedIcon: lgs.NewStyle().Foreground(lgs.Color(ccc.ColorSelected)).Bold(true),
+		SelectedText: lgs.NewStyle().Foreground(lgs.Color(ccc.ColorSelected)).Bold(true),
 	}
 }
 
@@ -103,6 +107,7 @@ type Model struct {
 	Order    []string          // Current viewing order
 	Extra    string            // Extra info to show for each item
 	Active   string            // Currently active task
+	Selected []string          // Selected tasks
 
 	// State
 	State State
@@ -132,6 +137,7 @@ func New() Model {
 		Levels:   map[string]int{},
 		Children: []string{},
 		Order:    []string{},
+		Selected: []string{},
 
 		Width:   80,
 		Height:  20,
@@ -243,12 +249,19 @@ func (m Model) viewIcon(id string) string {
 		style = m.Styles.CurrentIcon
 		icon = ccc.IconUICurrent
 	}
+	if m.IsSelected(id) {
+		style = m.Styles.SelectedIcon
+	}
 	return style.Render("  " + icon)
 }
 
 func (m Model) viewPages() string {
 	style := m.Styles.NormalText
-	return style.Render(fmt.Sprintf("%d items", len(m.Items)))
+	selected := ""
+	if len(m.Selected) > 0 {
+		selected = m.Styles.SelectedText.Render(fmt.Sprintf("%d /", len(m.Selected)))
+	}
+	return style.Render(fmt.Sprintf("%s %d items", selected, len(m.Items)))
 }
 
 func (m Model) viewItem(id string) string {
@@ -372,6 +385,7 @@ type keyMap struct {
 	Modify     key.Binding
 	AddChild   key.Binding
 	AddSibling key.Binding
+	Select     key.Binding
 }
 
 var keys = keyMap{
@@ -414,6 +428,10 @@ var keys = keyMap{
 	AddSibling: key.NewBinding(
 		key.WithKeys("a"),
 		key.WithHelp("a", "add sibling"),
+	),
+	Select: key.NewBinding(
+		key.WithKeys("r"),
+		key.WithHelp("r", "select"),
 	),
 }
 
@@ -536,6 +554,34 @@ func (m *Model) StartAdd() {
 	m.input.Focus()
 }
 
+func (m Model) IsSelected(id string) bool {
+	for _, v := range m.Selected {
+		if id == v {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *Model) DropFromSelected(id string) {
+	selected := []string{}
+	for _, v := range m.Selected {
+		if id != v {
+			selected = append(selected, v)
+		}
+	}
+	m.Selected = selected
+}
+
+func (m *Model) ToggleSelected() {
+	id := m.CurrentItem().Key()
+	if m.IsSelected(id) {
+		m.DropFromSelected(id)
+	} else {
+		m.Selected = append(m.Selected, id)
+	}
+}
+
 func (m Model) handleAdd(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
@@ -607,6 +653,10 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 		case key.Matches(msg, keys.AddSibling):
 			m.State = StateAdd
 			m.StartAdd()
+
+		// Toggle select
+		case key.Matches(msg, keys.Select):
+			m.ToggleSelected()
 		}
 	}
 	return m, cmd
