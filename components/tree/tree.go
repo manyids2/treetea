@@ -386,6 +386,7 @@ type keyMap struct {
 	AddChild   key.Binding
 	AddSibling key.Binding
 	Select     key.Binding
+	SelectTree key.Binding
 }
 
 var keys = keyMap{
@@ -432,6 +433,10 @@ var keys = keyMap{
 	Select: key.NewBinding(
 		key.WithKeys("r"),
 		key.WithHelp("r", "select"),
+	),
+	SelectTree: key.NewBinding(
+		key.WithKeys("R"),
+		key.WithHelp("R", "select tree"),
 	),
 }
 
@@ -582,6 +587,22 @@ func (m *Model) ToggleSelected() {
 	}
 }
 
+func (m *Model) selectTree(id string) {
+	if m.IsSelected(id) {
+		m.DropFromSelected(id)
+	} else {
+		m.Selected = append(m.Selected, id)
+	}
+	for _, c := range m.Items.Get(id).Children() {
+		m.selectTree(c)
+	}
+}
+
+func (m *Model) ToggleSelectTree() {
+	id := m.CurrentItem().Key()
+	m.selectTree(id)
+}
+
 func (m Model) handleAdd(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
@@ -657,6 +678,11 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 		// Toggle select
 		case key.Matches(msg, keys.Select):
 			m.ToggleSelected()
+
+		// Toggle selecttree
+		case key.Matches(msg, keys.SelectTree):
+			m.ToggleSelectTree()
+
 		}
 	}
 	return m, cmd
