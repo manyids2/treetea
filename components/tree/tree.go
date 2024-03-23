@@ -178,6 +178,7 @@ func (m *Model) Load(items Items) {
 	m.Levels = map[string]int{}
 	m.Children = []string{}
 	m.Order = []string{}
+	m.Selected = []string{}
 
 	// Reverse tree to keep track of parents
 	for _, n := range m.Items {
@@ -245,11 +246,17 @@ func (m *Model) IndexOrder(id string) {
 func (m Model) viewIcon(id string) string {
 	style := m.Styles.NormalIcon
 	icon := ccc.IconUIBar
-	if m.Order[m.Current] == id {
+	current := m.Order[m.Current] == id
+	selected := m.IsSelected(id)
+	if selected {
+		style = m.Styles.SelectedIcon
+		icon = ccc.IconUISelected
+	}
+	if current {
 		style = m.Styles.CurrentIcon
 		icon = ccc.IconUICurrent
 	}
-	if m.IsSelected(id) {
+	if current && selected {
 		style = m.Styles.SelectedIcon
 	}
 	return style.Render("  " + icon)
@@ -375,18 +382,19 @@ func (m Model) View() string {
 // keyMap defines a set of keybindings. To work for help it must satisfy
 // key.Map. It could also very easily be a map[string]key.Binding.
 type keyMap struct {
-	Up         key.Binding
-	Down       key.Binding
-	Top        key.Binding
-	Bottom     key.Binding
-	Left       key.Binding
-	Right      key.Binding
-	Edit       key.Binding
-	Modify     key.Binding
-	AddChild   key.Binding
-	AddSibling key.Binding
-	Select     key.Binding
-	SelectTree key.Binding
+	Up          key.Binding
+	Down        key.Binding
+	Top         key.Binding
+	Bottom      key.Binding
+	Left        key.Binding
+	Right       key.Binding
+	Edit        key.Binding
+	Modify      key.Binding
+	AddChild    key.Binding
+	AddSibling  key.Binding
+	Select      key.Binding
+	SelectTree  key.Binding
+	SelectClear key.Binding
 }
 
 var keys = keyMap{
@@ -437,6 +445,10 @@ var keys = keyMap{
 	SelectTree: key.NewBinding(
 		key.WithKeys("R"),
 		key.WithHelp("R", "select tree"),
+	),
+	SelectClear: key.NewBinding(
+		key.WithKeys("ctrl+r"),
+		key.WithHelp("ctrl+r", "clear selection"),
 	),
 }
 
@@ -587,20 +599,38 @@ func (m *Model) ToggleSelected() {
 	}
 }
 
-func (m *Model) selectTree(id string) {
+func (m *Model) toggleTree(id string) {
 	if m.IsSelected(id) {
 		m.DropFromSelected(id)
 	} else {
 		m.Selected = append(m.Selected, id)
 	}
 	for _, c := range m.Items.Get(id).Children() {
-		m.selectTree(c)
+		m.toggleTree(c)
 	}
 }
 
 func (m *Model) ToggleSelectTree() {
 	id := m.CurrentItem().Key()
-	m.selectTree(id)
+	m.toggleTree(id)
+}
+
+func (m *Model) setSelectTree(id string, sel bool) {
+	if sel && !m.IsSelected(id) {
+		m.Selected = append(m.Selected, id)
+	}
+	if !sel && m.IsSelected(id) {
+		m.DropFromSelected(id)
+	}
+	for _, c := range m.Items.Get(id).Children() {
+		m.setSelectTree(c, sel)
+	}
+}
+
+// TODO: No keybinding yet
+func (m *Model) SetSelectTree(sel bool) {
+	id := m.CurrentItem().Key()
+	m.setSelectTree(id, sel)
 }
 
 func (m Model) handleAdd(msg tea.Msg) (Model, tea.Cmd) {
@@ -682,6 +712,11 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 		// Toggle selecttree
 		case key.Matches(msg, keys.SelectTree):
 			m.ToggleSelectTree()
+
+		// Clear selection
+		case key.Matches(msg, keys.SelectClear):
+			m.Selected = []string{}
+			return m, nil
 
 		}
 	}

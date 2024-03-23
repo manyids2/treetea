@@ -19,16 +19,17 @@ type keyMap struct {
 	Context key.Binding
 	Help    key.Binding
 
-	Done       key.Binding
-	StartStop  key.Binding
-	Edit       key.Binding
-	Editor     key.Binding
-	Modify     key.Binding
-	AddChild   key.Binding
-	AddSibling key.Binding
-	Delete     key.Binding
-	Select     key.Binding
-	SelectTree key.Binding
+	Done        key.Binding
+	StartStop   key.Binding
+	Edit        key.Binding
+	Editor      key.Binding
+	Modify      key.Binding
+	AddChild    key.Binding
+	AddSibling  key.Binding
+	Delete      key.Binding
+	Select      key.Binding
+	SelectTree  key.Binding
+	SelectClear key.Binding
 
 	TagsShow key.Binding
 	DueShow  key.Binding
@@ -126,6 +127,10 @@ var keys = keyMap{
 		key.WithKeys("R"),
 		key.WithHelp("R", "select tree"),
 	),
+	SelectClear: key.NewBinding(
+		key.WithKeys("ctrl+r"),
+		key.WithHelp("ctrl+r", "clear selection"),
+	),
 
 	// Toggles
 	TagsShow: key.NewBinding(
@@ -165,6 +170,6 @@ func (k keyMap) FullHelp() [][]key.Binding {
 		{k.Help, k.Done, k.Quit, k.Filter, k.Context, k.TagsShow, k.DueShow},
 		{k.Up, k.Down, k.Top, k.Bottom, k.Left, k.Right},
 		{k.Edit, k.Editor, k.Modify, k.AddChild, k.AddSibling, k.Delete},
-		{k.Select, k.SelectTree},
+		{k.Select, k.SelectTree, k.SelectClear},
 	}
 }
