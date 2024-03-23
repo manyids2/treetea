@@ -216,6 +216,9 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) CurrentItem() Item {
+	if len(m.Order) == 0 {
+		return nil
+	}
 	id := m.Order[m.Current]
 	item := m.Items.Get(id)
 	return item
@@ -253,6 +256,10 @@ func (m *Model) IndexOrder(id string) {
 }
 
 func (m Model) viewIcon(id string) string {
+	if id == "" {
+		return m.Styles.NormalIcon.Render("  " + ccc.IconUIBar)
+	}
+
 	style := m.Styles.NormalIcon
 	icon := ccc.IconUIBar
 	current := m.Order[m.Current] == id
@@ -371,17 +378,34 @@ func (m Model) View() string {
 	content := "\n"
 	minIdx, maxIdx := m.pages.GetSliceBounds(len(m.Items))
 	if maxIdx == minIdx {
-		content += fmt.Sprintf("%s No items found.\n\n", m.Padding)
-		return content
+		// Add if no items
+		if (m.State == StateAdd) && (len(m.Items) == 0) {
+			content += fmt.Sprintf("%s %s%s\n",
+				m.Padding,
+				m.viewIcon(""),
+				m.Styles.EditText.Render(fmt.Sprintf("%s    %s", "", m.input.View())),
+			)
+		} else {
+			// Home state
+			for i := maxIdx - m.pages.Page*m.pages.PerPage; i < m.pages.PerPage; i++ {
+				content += "\n"
+			}
+			content += fmt.Sprintf("%s No items found.\n\n", m.Padding)
+			return content
+		}
 	}
 
+	// Render items
 	for _, v := range m.Order[minIdx:maxIdx] {
 		content += m.viewItem(v)
 	}
+
+	// Maintain height
 	for i := maxIdx - m.pages.Page*m.pages.PerPage; i < m.pages.PerPage; i++ {
 		content += "\n"
 	}
 
+	// Pages
 	pages := ""
 	if m.pages.TotalPages > 1 {
 		pages = m.Styles.ExtraText.Render(fmt.Sprintf("%s  %d/%d  %s  \n",
@@ -584,7 +608,10 @@ func cancelAdd(m Model) tea.Cmd {
 }
 
 func (m *Model) StartAdd() {
-	m.Parent = m.CurrentItem().Key()
+	current := m.CurrentItem()
+	if current != nil {
+		m.Parent = m.CurrentItem().Key()
+	}
 	m.input.Placeholder = ""
 	m.input.SetValue("")
 	m.input.Focus()
@@ -610,6 +637,9 @@ func (m *Model) DropFromSelected(id string) {
 }
 
 func (m *Model) ToggleSelected() {
+	if m.CurrentItem() == nil {
+		return
+	}
 	id := m.CurrentItem().Key()
 	if m.IsSelected(id) {
 		m.DropFromSelected(id)
@@ -619,6 +649,10 @@ func (m *Model) ToggleSelected() {
 }
 
 func (m *Model) toggleTree(id string) {
+	root := m.Items.Get(id)
+	if root == nil {
+		return
+	}
 	if m.IsSelected(id) {
 		m.DropFromSelected(id)
 	} else {
@@ -630,6 +664,9 @@ func (m *Model) toggleTree(id string) {
 }
 
 func (m *Model) ToggleSelectTree() {
+	if m.CurrentItem() == nil {
+		return
+	}
 	id := m.CurrentItem().Key()
 	m.toggleTree(id)
 }
