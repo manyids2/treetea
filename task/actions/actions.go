@@ -1,4 +1,4 @@
-package task
+package actions
 
 import (
 	"encoding/json"
@@ -6,10 +6,14 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+
+	tw "github.com/manyids2/tasktea/task"
 )
 
 // List Get list of tasks given filters
-func List(filters []string) ([]Task, error) {
+//
+// `task [filters] export`
+func List(filters []string) ([]tw.Task, error) {
 	// Setup command
 	filters = append(filters, "export")
 	cmd := exec.Command("task", filters...)
@@ -17,19 +21,45 @@ func List(filters []string) ([]Task, error) {
 	// Get json formatted array of tasks, return empty if error
 	out, err := cmd.Output()
 	if err != nil {
-		return []Task{}, err
+		return []tw.Task{}, err
 	}
 
 	// Parse json output, return empty if error
-	var tasks_list []Task
+	var tasks_list []tw.Task
 	if err := json.Unmarshal(out, &tasks_list); err != nil {
-		return []Task{}, err
+		return []tw.Task{}, err
 	}
 
 	return tasks_list, err
 }
 
-// Get all contexts
+// List Get list of active tasks
+//
+// `task export active`
+func Active() []string {
+	active := []string{}
+	cmd := exec.Command("task", "export", "active")
+	out, err := cmd.Output()
+	if err != nil {
+		return active
+	}
+
+	// Parse json output, return empty if error
+	var tasks_list []tw.Task
+	if err := json.Unmarshal(out, &tasks_list); err != nil {
+		return active
+	}
+
+	// Add all active tasks
+	for _, v := range tasks_list {
+		active = append(active, v.UUID)
+	}
+	return active
+}
+
+// Contexts Get all contexts
+//
+// `task _context`
 func Contexts() []string {
 	// Run context command
 	contexts := []string{}
@@ -45,7 +75,9 @@ func Contexts() []string {
 	return contexts
 }
 
-// Parse current context
+// Context Parse current context to get read and write filters
+//
+// `task context show`
 func Context() (string, string, string) {
 	// Run context command
 	context := "none"
@@ -87,7 +119,9 @@ func Context() (string, string, string) {
 	return context, read_filters, write_filters
 }
 
-// Get all Projects
+// Projects Get all Projects
+//
+// `task _projects`
 func Projects() []string {
 	// Run context command
 	projects := []string{}
@@ -103,25 +137,9 @@ func Projects() []string {
 	return projects
 }
 
-func Active() string {
-	cmd := exec.Command("task", "export", "active")
-	out, err := cmd.Output()
-	if err != nil {
-		return ""
-	}
-
-	// Parse json output, return empty if error
-	var tasks_list []Task
-	if err := json.Unmarshal(out, &tasks_list); err != nil {
-		return ""
-	}
-
-	if len(tasks_list) == 1 {
-		return tasks_list[0].UUID
-	}
-	return ""
-}
-
+// Projects Get all Projects
+//
+// `task context [context]`
 func SetContext(context string) error {
 	cmd := exec.Command("task", "context", context)
 	_, err := cmd.Output()
@@ -129,6 +147,8 @@ func SetContext(context string) error {
 }
 
 // SetStatus Set task status
+//
+// `task [uuid] modify status:[status]`
 func SetStatus(uuid string, status string) error {
 	args := []string{uuid, "modify", fmt.Sprintf("status:%s", status)}
 	cmd := exec.Command("task", args...)
@@ -137,13 +157,17 @@ func SetStatus(uuid string, status string) error {
 }
 
 // SetActive Start/stop task
-func SetActive(uuid string, status string) error {
-	cmd := exec.Command("task", uuid, status)
+//
+// `task [uuid] [start/stop]`
+func SetActive(uuid string, startstop string) error {
+	cmd := exec.Command("task", uuid, startstop)
 	_, err := cmd.Output()
 	return err
 }
 
 // LinkToParent Make task child of parent
+//
+// `task [uuid] modify depends:[parent]`
 func LinkToParent(uuid string, parent string) error {
 	args := []string{parent, "modify", fmt.Sprintf("depends:%s", uuid)}
 	cmd := exec.Command("task", args...)
@@ -152,6 +176,10 @@ func LinkToParent(uuid string, parent string) error {
 }
 
 // UnlinkFromParent In effect, dedent the task
+//
+// `task [uuid] modify depends:`
+// `task [parent] modify depends:[all children other than uuid]`
+// `task [grandparent] modify depends:[uuid]`
 func UnlinkFromParent(uuid string, parent string, grandparent string, depends []string) error {
 	// Remove all dependencies of parent
 	args := []string{parent, "modify", "depends:"}
@@ -187,7 +215,10 @@ func UnlinkFromParent(uuid string, parent string, grandparent string, depends []
 	return err
 }
 
-// Add Add task and get uuid
+// Add Add task, get uuid and update parent's children
+//
+// `task add [tags] '[description]'`
+// `task [parent] modify depends:[uuid]`
 func Add(filters []string, description string, parent string) (string, error) {
 	// Removing things like `-tag`, `/.../` which dont make sense
 	// TODO: Maybe use regex, read spec to find out also whats up
@@ -225,6 +256,8 @@ func Add(filters []string, description string, parent string) (string, error) {
 }
 
 // Modify task description
+//
+// `task [uuid] modify '[description]'`
 func ModifyDescription(uuid string, description string) error {
 	args := []string{uuid, "modify", fmt.Sprintf("'%s'", description)}
 	cmd := exec.Command("task", args...)
@@ -233,7 +266,8 @@ func ModifyDescription(uuid string, description string) error {
 }
 
 // Modify task with arguments
-// TODO: make batch operation
+//
+// `task [uuid] modify [args]`
 func Modify(uuid string, args []string) error {
 	out := []string{uuid, "modify"}
 	out = append(out, args...)
@@ -242,7 +276,20 @@ func Modify(uuid string, args []string) error {
 	return err
 }
 
-// Delete task
+// ModifyBatch Modify multiple tasks with same arguments
+//
+// `task [uuids] modify [args]`
+func ModifyBatch(uuids []string, args []string) error {
+	out := append(uuids, "modify")
+	out = append(out, args...)
+	cmd := exec.Command("task", out...)
+	_, err := cmd.Output()
+	return err
+}
+
+// Delete task, turn of confirmation
+//
+// `task [uuid] rc.confirmation=off delete`
 func Delete(uuid string) error {
 	args := []string{uuid, "rc.confirmation=off", "delete"}
 	cmd := exec.Command("task", args...)

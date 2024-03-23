@@ -1,47 +1,16 @@
 package task
 
 import (
-	"fmt"
+	"encoding/json"
 	"strings"
 	"time"
 )
 
 // Datetime format of Taskwarrior
-type ISO8601 string
+type ISO8601 time.Time
 
 // Format for go to parse
 const FORMAT_ISO8601 = "20060102T150405Z"
-
-// Text or unicode markers for status
-var MARKERS = map[string]map[string]string{
-	"icon": {
-		"pending":   "󰝦 ",
-		"deleted":   "󰩺 ",
-		"completed": " ",
-		"waiting":   "󰔛 ",
-		"recurring": "󰑐 ",
-		"default":   "󰝦 ",
-	},
-	"text": {
-		"pending":   "- [ ]",
-		"deleted":   "- [ ]",
-		"waiting":   "- [ ]",
-		"recurring": "- [ ]",
-		"default":   "- [ ]",
-		// Only this is recognized due to checkbox constraint in markdown syntax
-		"completed": "- [x]",
-	},
-}
-
-// ISO8601_to_DateTime Convert timewarrior format to go datetime with proper
-// default in case of empty string
-func ISO8601_to_DateTime(d ISO8601) time.Time {
-	t, e := time.Parse(FORMAT_ISO8601, string(d))
-	if e != nil {
-		t = time.Time{}
-	}
-	return t
-}
 
 // Task struct defined at [Taskwarrior JSON format]()
 type Task struct {
@@ -68,59 +37,16 @@ type Task struct {
 	Annotation  map[string]string `json:"annotation,omitempty"`
 }
 
-func (t Task) Key() string {
-	return t.UUID
-}
-
-func (t Task) Val() string {
-	return t.Description
-}
-
-func (t Task) Children() []string {
-	return t.Depends
-}
-
-func (t Task) String() string {
-	return fmt.Sprintf("%s %s", MARKERS["icon"][t.Status], t.Description)
-}
-
-func (t Task) Extra(name string) string {
-	switch name {
-	case "due":
-		if t.Due == "" {
-			return ""
-		}
-		return fmt.Sprintf("  %s", ISO8601_to_DateTime(t.Due).Format("2 Jan"))
-	case "tags":
-		if len(t.Tags) == 0 {
-			return ""
-		}
-		return "  " + strings.Join(t.Tags, " ")
-	case "uuid":
-		return t.UUID[:8]
-	case "id":
-		return fmt.Sprintf("%d", t.ID)
-	case "project":
-		return t.Project
+func (j *ISO8601) UnmarshalJSON(b []byte) error {
+	d := strings.Trim(string(b), "\"")
+	t, e := time.Parse(FORMAT_ISO8601, string(d))
+	if e != nil {
+		t = time.Time{}
 	}
-	return ""
+	*j = ISO8601(t)
+	return nil
 }
 
-// Context struct
-type ContextS string
-
-func (c ContextS) Key() string {
-	return string(c)
-}
-
-func (c ContextS) Val() string {
-	return string(c)
-}
-
-func (c ContextS) Children() []string {
-	return []string{}
-}
-
-func (c ContextS) Extra(string) string {
-	return ""
+func (j ISO8601) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Time(j))
 }
