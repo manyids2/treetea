@@ -20,6 +20,7 @@ type keyMap struct {
 	Help    key.Binding
 
 	Done       key.Binding
+	StartStop  key.Binding
 	Edit       key.Binding
 	Editor     key.Binding
 	Modify     key.Binding
@@ -29,6 +30,7 @@ type keyMap struct {
 
 	TagsShow key.Binding
 	DueShow  key.Binding
+	IDsShow  key.Binding
 
 	Accept key.Binding
 	Cancel key.Binding
@@ -86,6 +88,10 @@ var keys = keyMap{
 		key.WithKeys(" "),
 		key.WithHelp("space", "toggle done"),
 	),
+	StartStop: key.NewBinding(
+		key.WithKeys("s"),
+		key.WithHelp("s", "start/stop"),
+	),
 	Edit: key.NewBinding(
 		key.WithKeys("e"),
 		key.WithHelp("e", "edit"),
@@ -119,6 +125,10 @@ var keys = keyMap{
 	DueShow: key.NewBinding(
 		key.WithKeys("D"),
 		key.WithHelp("D", "show due"),
+	),
+	IDsShow: key.NewBinding(
+		key.WithKeys("I"),
+		key.WithHelp("I", "show uuids"),
 	),
 
 	// Global

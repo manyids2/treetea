@@ -95,6 +95,8 @@ func (t Task) Extra(name string) string {
 			return ""
 		}
 		return "  " + strings.Join(t.Tags, " ")
+	case "uuid":
+		return t.UUID[:8]
 	}
 	return ""
 }

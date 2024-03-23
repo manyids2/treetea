@@ -41,6 +41,7 @@ type Model struct {
 	Context      string
 	ReadFilters  string
 	WriteFilters string
+	Active       string
 
 	// State
 	State    State
@@ -102,6 +103,7 @@ func NewModel(filters []string) Model {
 	// Get initial context, tasks
 	m.RunContext()
 	m.RunFilters()
+	m.RunActive()
 
 	return m
 }
@@ -113,6 +115,11 @@ func (m Model) Init() tea.Cmd {
 func (m *Model) RunContext() {
 	m.Context, m.ReadFilters, m.WriteFilters = tk.Context()
 	m.nav.Load(m.Context, m.Filters)
+}
+
+func (m *Model) RunActive() {
+	m.Active = tk.Active()
+	m.tree.Active = m.Active
 }
 
 func (m *Model) RunFilters() {
@@ -156,6 +163,19 @@ func (m Model) toggleDone(msg tea.Msg) (Model, tea.Cmd) {
 	case "completed":
 		tk.SetStatus(task.UUID, "pending")
 		m.RunFilters()
+	}
+	return m, nil
+}
+
+func (m Model) toggleStartStop(msg tea.Msg) (Model, tea.Cmd) {
+	task := m.tree.CurrentItem().(tk.Task)
+	if task.UUID == m.Active {
+		tk.SetActive(task.UUID, "stop")
+		m.Active = ""
+		m.RunActive()
+	} else {
+		tk.SetActive(task.UUID, "start")
+		m.RunActive()
 	}
 	return m, nil
 }
@@ -242,8 +262,21 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 				m.tree.Extra = ""
 			}
 			return m, nil
-		}
 
+		// Toggle uuid
+		case key.Matches(msg, keys.IDsShow):
+			if m.tree.Extra == "" {
+				m.tree.Extra = "uuid"
+			} else {
+				m.tree.Extra = ""
+			}
+			return m, nil
+
+		// Toggle uuid
+		case key.Matches(msg, keys.StartStop):
+			return m.toggleStartStop(msg)
+
+		}
 	}
 	m.tree, cmd = m.tree.Update(msg) // Handle keys for tree
 	return m, cmd

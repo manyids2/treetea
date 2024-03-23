@@ -87,6 +87,25 @@ func Context() (string, string, string) {
 	return context, read_filters, write_filters
 }
 
+func Active() string {
+	cmd := exec.Command("task", "export", "active")
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+
+	// Parse json output, return empty if error
+	var tasks_list []Task
+	if err := json.Unmarshal(out, &tasks_list); err != nil {
+		return ""
+	}
+
+	if len(tasks_list) == 1 {
+		return tasks_list[0].UUID
+	}
+	return ""
+}
+
 func SetContext(context string) error {
 	cmd := exec.Command("task", "context", context)
 	_, err := cmd.Output()
@@ -97,6 +116,13 @@ func SetContext(context string) error {
 func SetStatus(uuid string, status string) error {
 	args := []string{uuid, "modify", fmt.Sprintf("status:%s", status)}
 	cmd := exec.Command("task", args...)
+	_, err := cmd.Output()
+	return err
+}
+
+// SetActive Start/stop task
+func SetActive(uuid string, status string) error {
+	cmd := exec.Command("task", uuid, status)
 	_, err := cmd.Output()
 	return err
 }

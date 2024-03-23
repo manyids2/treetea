@@ -68,6 +68,7 @@ type Styles struct {
 	EditIcon    lgs.Style
 	EditText    lgs.Style
 	ExtraText   lgs.Style
+	ActiveText  lgs.Style
 }
 
 func NewStyles() Styles {
@@ -79,6 +80,7 @@ func NewStyles() Styles {
 		EditIcon:    lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Bold(true),
 		EditText:    lgs.NewStyle().Background(lgs.Color(ccc.ColorEmphBackground)).Foreground(lgs.Color(ccc.ColorAlert)).Italic(true),
 		ExtraText:   lgs.NewStyle().Foreground(lgs.Color(ccc.ColorExtraForeground)).Italic(true),
+		ActiveText:  lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Italic(true),
 	}
 }
 
@@ -100,6 +102,7 @@ type Model struct {
 	Children []string          // Top level items
 	Order    []string          // Current viewing order
 	Extra    string            // Extra info to show for each item
+	Active   string            // Currently active task
 
 	// State
 	State State
@@ -270,6 +273,10 @@ func (m Model) viewItem(id string) string {
 		default:
 			style = m.Styles.CurrentText
 		}
+	}
+
+	if m.Active == id {
+		style = m.Styles.ActiveText
 	}
 
 	extra := ""
