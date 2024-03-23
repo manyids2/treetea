@@ -97,18 +97,18 @@ var keys = keyMap{
 		key.WithHelp("a", "add sibling"),
 	),
 	Delete: key.NewBinding(
-		key.WithKeys("D"),
-		key.WithHelp("D", "delete task"),
+		key.WithKeys("ctrl+x"),
+		key.WithHelp("ctrl+x", "delete task"),
 	),
 
 	// Toggles
 	TagsShow: key.NewBinding(
-		key.WithKeys("ctrl+t"),
-		key.WithHelp("ctrl+t", "show tags"),
+		key.WithKeys("T"),
+		key.WithHelp("T", "show tags"),
 	),
 	DueShow: key.NewBinding(
-		key.WithKeys("ctrl+d"),
-		key.WithHelp("ctrl+d", "show due"),
+		key.WithKeys("D"),
+		key.WithHelp("D", "show due"),
 	),
 
 	// Global

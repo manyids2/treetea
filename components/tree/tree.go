@@ -78,7 +78,7 @@ func NewStyles() Styles {
 		CurrentText: lgs.NewStyle().Background(lgs.Color(ccc.ColorEmphBackground)).Foreground(lgs.Color(ccc.ColorForeground)).Italic(true),
 		EditIcon:    lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Bold(true),
 		EditText:    lgs.NewStyle().Background(lgs.Color(ccc.ColorEmphBackground)).Foreground(lgs.Color(ccc.ColorAlert)).Italic(true),
-		ExtraText:   lgs.NewStyle().Foreground(lgs.Color(ccc.ColorExtraForeground)),
+		ExtraText:   lgs.NewStyle().Foreground(lgs.Color(ccc.ColorExtraForeground)).Italic(true),
 	}
 }
 
