@@ -221,6 +221,15 @@ func (m Model) CurrentItem() Item {
 	return item
 }
 
+func (m Model) SelectedItems() []Item {
+	items := []Item{}
+	for _, t := range m.Selected {
+		item := m.Items.Get(t)
+		items = append(items, item)
+	}
+	return items
+}
+
 func (m *Model) IndexLevels(id string, level int) {
 	m.Levels[id] = level
 	n := m.Items.Get(id)
@@ -274,18 +283,16 @@ func (m Model) viewPages() string {
 func (m Model) viewItem(id string) string {
 	// Get data
 	n := m.Items.Get(id)
+	current := m.Order[m.Current] == id
 
 	// Render
 	add_text := ""
 	style := m.Styles.NormalText
 	text := fmt.Sprintf("%v", n)
 	indent := strings.Repeat("  ", m.Levels[id])
-	if m.Order[m.Current] == id {
+	if current {
 		switch m.State {
 		case StateEdit:
-			style = m.Styles.EditText
-			text = fmt.Sprintf("   %s", m.input.View())
-		case StateModify:
 			style = m.Styles.EditText
 			text = fmt.Sprintf("   %s", m.input.View())
 		case StateAdd:
@@ -297,6 +304,18 @@ func (m Model) viewItem(id string) string {
 			)
 		default:
 			style = m.Styles.CurrentText
+		}
+	}
+
+	if len(m.Selected) == 0 {
+		if m.State == StateModify && current {
+			style = m.Styles.EditText
+			text += fmt.Sprintf("   %s", m.input.View())
+		}
+	} else {
+		if m.State == StateModify && m.IsSelected(id) {
+			style = m.Styles.EditText
+			text += fmt.Sprintf("   %s", m.input.View())
 		}
 	}
 
@@ -324,7 +343,7 @@ func (m Model) viewItem(id string) string {
 		content = fmt.Sprintf("%s %s%s%s\n",
 			m.Padding,
 			m.viewIcon(id),
-			style.Render(fmt.Sprintf("%s %s", indent, text)),
+			style.Render(fmt.Sprintf("%s %s  ", indent, text)),
 			m.Styles.ExtraText.Render(extra),
 		)
 

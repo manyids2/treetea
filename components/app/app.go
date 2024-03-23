@@ -366,8 +366,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tree.ModifyChangedMsg:
 		m.State = StateHome
 		args := strings.Split(string(msg), " ")
-		task := m.tree.CurrentItem().(tk.Task)
-		tk.Modify(task.UUID, args)
+		// If nothing is selected, modify current
+		if len(m.tree.Selected) == 0 {
+			task := m.tree.CurrentItem().(tk.Task)
+			tk.Modify(task.UUID, args)
+		} else {
+			// Modify all selected
+			for _, t := range m.tree.SelectedItems() {
+				tk.Modify(t.(tk.Task).UUID, args)
+			}
+		}
 		m.RunFilters() // Basically just reload
 
 	case tree.AddCancelledMsg:

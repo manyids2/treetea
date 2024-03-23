@@ -217,6 +217,7 @@ func ModifyDescription(uuid string, description string) error {
 }
 
 // Modify task with arguments
+// TODO: make batch operation
 func Modify(uuid string, args []string) error {
 	out := []string{uuid, "modify"}
 	out = append(out, args...)
