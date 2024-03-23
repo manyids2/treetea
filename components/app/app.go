@@ -122,13 +122,13 @@ func (m Model) View() string {
 	}
 	var content string
 	switch m.State {
-	case StateHome:
-		content = m.nav.View() + "\n" +
-			m.tree.View() + "\n" +
-			m.help.View(m.keys)
 	case StateContext:
 		content = m.nav.View() + "\n" +
 			m.contexts.View() + "\n" +
+			m.help.View(m.keys)
+	default:
+		content = m.nav.View() + "\n" +
+			m.tree.View() + "\n" +
 			m.help.View(m.keys)
 	}
 	return content

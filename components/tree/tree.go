@@ -190,6 +190,9 @@ func (m Model) CurrentItem() Item {
 func (m *Model) IndexLevels(id string, level int) {
 	m.Levels[id] = level
 	n := m.Items.Get(id)
+	if n == nil {
+		return
+	}
 	for _, c := range n.Children() {
 		m.IndexLevels(c, level+1)
 	}
@@ -198,6 +201,9 @@ func (m *Model) IndexLevels(id string, level int) {
 func (m *Model) IndexOrder(id string) {
 	m.Order = append(m.Order, id)
 	n := m.Items.Get(id)
+	if n == nil {
+		return
+	}
 	for _, c := range n.Children() {
 		m.IndexOrder(c)
 	}
@@ -240,7 +246,7 @@ func (m Model) View() string {
 	content := "\n"
 	minIdx, maxIdx := m.pages.GetSliceBounds(len(m.Items))
 	if maxIdx == minIdx {
-		content += fmt.Sprintf("\n%s No items found.\n", m.Padding)
+		content += fmt.Sprintf("%s No items found.\n\n", m.Padding)
 		return content
 	}
 
