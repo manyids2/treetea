@@ -89,6 +89,7 @@ const (
 	StateHome = iota
 	StateEdit
 	StateAdd
+	StateModify
 )
 
 // --- Model ---
@@ -256,6 +257,9 @@ func (m Model) viewItem(id string) string {
 		case StateEdit:
 			style = m.Styles.EditText
 			text = fmt.Sprintf("   %s", m.input.View())
+		case StateModify:
+			style = m.Styles.EditText
+			text = fmt.Sprintf("   %s", m.input.View())
 		case StateAdd:
 			add_style := m.Styles.EditText
 			add_text = fmt.Sprintf("%s %s%s\n",
@@ -268,29 +272,40 @@ func (m Model) viewItem(id string) string {
 		}
 	}
 
+	extra := ""
+	if m.Extra != "" {
+		extra = n.Extra(m.Extra)
+	}
+
 	var content string
 	switch m.State {
 
 	case StateEdit:
-		content = fmt.Sprintf("%s %s%s\n",
+		content = fmt.Sprintf("%s %s%s%s\n",
 			m.Padding,
 			m.viewIcon(id),
 			style.Render(fmt.Sprintf("%s %s", indent, text)),
+			m.Styles.ExtraText.Render(extra),
+		)
+
+	case StateModify:
+		content = fmt.Sprintf("%s %s%s%s\n",
+			m.Padding,
+			m.viewIcon(id),
+			style.Render(fmt.Sprintf("%s %s", indent, text)),
+			m.Styles.ExtraText.Render(extra),
 		)
 
 	case StateAdd:
-		content = fmt.Sprintf("%s %s%s\n%s",
+		content = fmt.Sprintf("%s %s%s%s\n%s",
 			m.Padding,
 			m.viewIcon(""),
 			style.Render(fmt.Sprintf("%s %s", indent, text)),
+			m.Styles.ExtraText.Render(extra),
 			add_text,
 		)
 
 	default:
-		extra := ""
-		if m.Extra != "" {
-			extra = n.Extra(m.Extra)
-		}
 		content = fmt.Sprintf("%s %s%s%s\n",
 			m.Padding,
 			m.viewIcon(id),
@@ -336,6 +351,7 @@ type keyMap struct {
 	Left       key.Binding
 	Right      key.Binding
 	Edit       key.Binding
+	Modify     key.Binding
 	AddChild   key.Binding
 	AddSibling key.Binding
 }
@@ -368,6 +384,10 @@ var keys = keyMap{
 	Edit: key.NewBinding(
 		key.WithKeys("e"),
 		key.WithHelp("e", "edit"),
+	),
+	Modify: key.NewBinding(
+		key.WithKeys("m"),
+		key.WithHelp("m", "modify"),
 	),
 	AddChild: key.NewBinding(
 		key.WithKeys("A"),
@@ -406,6 +426,70 @@ func (m *Model) StartEdit() {
 	m.input.SetValue(task.Val())
 }
 
+func (m Model) handleEdit(msg tea.Msg) (Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyEnter:
+			m.State = StateHome
+			return m, changedEdit(m)
+		case tea.KeyCtrlC, tea.KeyEsc:
+			m.State = StateHome
+			return m, cancelEdit(m)
+		}
+	case errMsg:
+		m.err = msg
+		return m, nil
+	}
+	m.input, cmd = m.input.Update(msg)
+	return m, cmd
+}
+
+// Returns current input value
+type ModifyChangedMsg string
+type ModifyCancelledMsg string
+
+func changedModify(m Model) tea.Cmd {
+	return func() tea.Msg {
+		return ModifyChangedMsg(m.input.Value())
+	}
+}
+
+func cancelModify(m Model) tea.Cmd {
+	return func() tea.Msg {
+		m.input.Placeholder = ""
+		m.input.SetValue("")
+		return ModifyCancelledMsg("")
+	}
+}
+
+func (m *Model) StartModify() {
+	m.input.Focus()
+	m.input.Placeholder = ""
+	m.input.SetValue("")
+}
+
+func (m Model) handleModify(msg tea.Msg) (Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyEnter:
+			m.State = StateHome
+			return m, changedModify(m)
+		case tea.KeyCtrlC, tea.KeyEsc:
+			m.State = StateHome
+			return m, cancelModify(m)
+		}
+	case errMsg:
+		m.err = msg
+		return m, nil
+	}
+	m.input, cmd = m.input.Update(msg)
+	return m, cmd
+}
+
 // Returns current input value and parent
 type AddChangedMsg []string
 type AddCancelledMsg string
@@ -427,39 +511,11 @@ func cancelAdd(m Model) tea.Cmd {
 	}
 }
 
-func (m *Model) StartAddChild() {
+func (m *Model) StartAdd() {
 	m.Parent = m.CurrentItem().Key()
 	m.input.Placeholder = ""
 	m.input.SetValue("")
 	m.input.Focus()
-}
-
-func (m *Model) StartAddSibling() {
-	current := m.CurrentItem().Key()
-	m.Parent = m.Parents[current]
-	m.input.Placeholder = ""
-	m.input.SetValue("")
-	m.input.Focus()
-}
-
-func (m Model) handleEdit(msg tea.Msg) (Model, tea.Cmd) {
-	var cmd tea.Cmd
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEnter:
-			m.State = StateHome
-			return m, changedEdit(m)
-		case tea.KeyCtrlC, tea.KeyEsc:
-			m.State = StateHome
-			return m, cancelEdit(m)
-		}
-	case errMsg:
-		m.err = msg
-		return m, nil
-	}
-	m.input, cmd = m.input.Update(msg)
-	return m, cmd
 }
 
 func (m Model) handleAdd(msg tea.Msg) (Model, tea.Cmd) {
@@ -519,15 +575,20 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 			m.State = StateEdit
 			m.StartEdit()
 
+		// Modify
+		case key.Matches(msg, keys.Modify):
+			m.State = StateModify
+			m.StartModify()
+
 		// Add child
 		case key.Matches(msg, keys.AddChild):
 			m.State = StateAdd
-			m.StartAddChild()
+			m.StartAdd()
 
 		// Add sibling
 		case key.Matches(msg, keys.AddSibling):
 			m.State = StateAdd
-			m.StartAddSibling()
+			m.StartAdd()
 		}
 	}
 	return m, cmd
@@ -541,6 +602,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m, cmd = m.handleHome(msg)
 	case StateEdit:
 		m, cmd = m.handleEdit(msg)
+	case StateModify:
+		m, cmd = m.handleModify(msg)
 	case StateAdd:
 		m, cmd = m.handleAdd(msg)
 	default: // should never occur

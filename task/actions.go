@@ -190,6 +190,15 @@ func ModifyDescription(uuid string, description string) error {
 	return err
 }
 
+// Modify task with arguments
+func Modify(uuid string, args []string) error {
+	out := []string{uuid, "modify"}
+	out = append(out, args...)
+	cmd := exec.Command("task", out...)
+	_, err := cmd.Output()
+	return err
+}
+
 // Delete task
 func Delete(uuid string) error {
 	args := []string{uuid, "rc.confirmation=off", "delete"}

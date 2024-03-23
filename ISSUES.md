@@ -8,6 +8,8 @@
 - Uniform setting of padding, margin
 - Multiline descriptions
 - Indentation when adding child vs sibling
+- Contextual help menu for q/esc confusion
+- Filter history
 
 ## Bugs
 

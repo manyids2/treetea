@@ -89,7 +89,7 @@ func (t Task) Extra(name string) string {
 		if t.Due == "" {
 			return ""
 		}
-		return fmt.Sprintf("  %s", ISO8601_to_DateTime(t.Due).Format("1 Feb"))
+		return fmt.Sprintf("  %s", ISO8601_to_DateTime(t.Due).Format("2 Jan"))
 	case "tags":
 		if len(t.Tags) == 0 {
 			return ""

@@ -21,6 +21,8 @@ type keyMap struct {
 
 	Done       key.Binding
 	Edit       key.Binding
+	Editor     key.Binding
+	Modify     key.Binding
 	AddChild   key.Binding
 	AddSibling key.Binding
 	Delete     key.Binding
@@ -88,6 +90,14 @@ var keys = keyMap{
 		key.WithKeys("e"),
 		key.WithHelp("e", "edit"),
 	),
+	Editor: key.NewBinding(
+		key.WithKeys("E"),
+		key.WithHelp("E", "edit in editor"),
+	),
+	Modify: key.NewBinding(
+		key.WithKeys("m"),
+		key.WithHelp("m", "modify"),
+	),
 	AddChild: key.NewBinding(
 		key.WithKeys("A"),
 		key.WithHelp("A", "add child"),
@@ -132,9 +142,8 @@ func (k keyMap) ShortHelp() []key.Binding {
 
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Help, k.Quit, k.Filter, k.Context, k.Accept, k.Cancel},
+		{k.Help, k.Done, k.Quit, k.Filter, k.Context, k.TagsShow, k.DueShow},
 		{k.Up, k.Down, k.Top, k.Bottom, k.Left, k.Right},
-		{k.Done, k.Edit, k.AddChild, k.AddSibling, k.Delete},
-		{k.TagsShow, k.DueShow},
+		{k.Edit, k.Editor, k.Modify, k.AddChild, k.AddSibling, k.Delete},
 	}
 }

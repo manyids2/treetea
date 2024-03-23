@@ -1,6 +1,7 @@
 package app
 
 import (
+	"os/exec"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -12,6 +13,15 @@ import (
 	tk "github.com/manyids2/tasktea/task"
 )
 
+type editorFinishedMsg struct{ err error }
+
+func openEditor(uuid string) tea.Cmd {
+	c := exec.Command("task", "edit", uuid)
+	return tea.ExecProcess(c, func(err error) tea.Msg {
+		return editorFinishedMsg{err}
+	})
+}
+
 type State int
 
 const (
@@ -19,6 +29,7 @@ const (
 	StateFilter
 	StateContext
 	StateEdit
+	StateModify
 	StateAdd
 )
 
@@ -156,6 +167,12 @@ func (m Model) deleteTask(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) editorTask(msg tea.Msg) (Model, tea.Cmd) {
+	task := m.tree.CurrentItem().(tk.Task)
+	cmd := openEditor(task.UUID)
+	return m, cmd
+}
+
 func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
@@ -187,6 +204,14 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 		// Edit
 		case key.Matches(msg, keys.Edit):
 			m.State = StateEdit
+
+		// Editor
+		case key.Matches(msg, keys.Editor):
+			return m.editorTask(msg)
+
+		// Modify
+		case key.Matches(msg, keys.Modify):
+			m.State = StateModify
 
 		// Add child
 		case key.Matches(msg, keys.AddChild):
@@ -298,6 +323,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		tk.ModifyDescription(task.UUID, desc)
 		m.RunFilters() // Basically just reload
 
+	case tree.ModifyCancelledMsg:
+		m.State = StateHome
+
+	case tree.ModifyChangedMsg:
+		m.State = StateHome
+		args := strings.Split(string(msg), " ")
+		task := m.tree.CurrentItem().(tk.Task)
+		tk.Modify(task.UUID, args)
+		m.RunFilters() // Basically just reload
+
 	case tree.AddCancelledMsg:
 		m.State = StateHome
 
@@ -320,6 +355,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case StateFilter:
 		m.nav, cmd = m.nav.Update(msg) // Delegate to nav
 	case StateEdit:
+		m.tree, cmd = m.tree.Update(msg) // Delegate to tree
+	case StateModify:
 		m.tree, cmd = m.tree.Update(msg) // Delegate to tree
 	case StateAdd:
 		m.tree, cmd = m.tree.Update(msg) // Delegate to tree
