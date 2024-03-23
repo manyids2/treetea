@@ -17,6 +17,7 @@ type State int
 const (
 	StateHome = iota
 	StateFilter
+	StateContext
 )
 
 type Model struct {
@@ -38,11 +39,13 @@ type Model struct {
 	Padding string
 	Styles  Styles
 
-	// Components
-	nav  navbar.Model
-	tree tree.Model
+	// Main components
+	nav  navbar.Model // Context, Filters
+	tree tree.Model   // Tasks
 	help help.Model
 	keys keyMap
+
+	contexts tree.Model // Context selection
 }
 
 func tasksToItems(tasks []tk.Task) []tree.Item {
@@ -53,27 +56,38 @@ func tasksToItems(tasks []tk.Task) []tree.Item {
 	return items
 }
 
+func contextsToItems(contexts []string) []tree.Item {
+	items := []tree.Item{}
+	for _, t := range contexts {
+		items = append(items, tk.ContextS(t))
+	}
+	return items
+}
+
 func NewModel(filters []string) Model {
 	m := Model{
-		Filters: filters,
-		State:   StateHome,
-		Width:   80,
-		Height:  1,
-		Padding: "  ",
-		Styles:  NewStyles(),
-		nav:     navbar.New(),
-		tree:    tree.New(),
-		help:    help.New(),
-		keys:    keys,
+		Filters:  filters,
+		State:    StateHome,
+		Width:    80,
+		Height:   1,
+		Padding:  "  ",
+		Styles:   NewStyles(),
+		nav:      navbar.New(),
+		tree:     tree.New(),
+		help:     help.New(),
+		keys:     keys,
+		contexts: tree.New(),
 	}
 
 	// How to add default passdown args?
 	m.tree.Padding = m.Padding
 	m.nav.Padding = m.Padding
 
+	// Get all available contexts
+	m.RunContexts()
+
 	// Get initial context, tasks
-	m.Context, m.ReadFilters, m.WriteFilters = tk.Context()
-	m.nav.Load(m.Context, m.Filters)
+	m.RunContext()
 	m.RunFilters()
 
 	return m
@@ -81,6 +95,11 @@ func NewModel(filters []string) Model {
 
 func (m Model) Init() tea.Cmd {
 	return nil
+}
+
+func (m *Model) RunContext() {
+	m.Context, m.ReadFilters, m.WriteFilters = tk.Context()
+	m.nav.Load(m.Context, m.Filters)
 }
 
 func (m *Model) RunFilters() {
@@ -91,13 +110,28 @@ func (m *Model) RunFilters() {
 	m.tree.Load(items)
 }
 
+func (m *Model) RunContexts() {
+	contexts := tk.Contexts()
+	items := contextsToItems(contexts)
+	m.contexts.Load(items)
+}
+
 func (m Model) View() string {
 	if m.quitting {
 		return ""
 	}
-	return m.nav.View() + "\n" +
-		m.tree.View() + "\n" +
-		m.help.View(m.keys)
+	var content string
+	switch m.State {
+	case StateHome:
+		content = m.nav.View() + "\n" +
+			m.tree.View() + "\n" +
+			m.help.View(m.keys)
+	case StateContext:
+		content = m.nav.View() + "\n" +
+			m.contexts.View() + "\n" +
+			m.help.View(m.keys)
+	}
+	return content
 }
 
 func (m Model) toggleDone(msg tea.Msg) (Model, tea.Cmd) {
@@ -124,19 +158,60 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 			return m, tea.Quit
 
 		// Help
-		case key.Matches(msg, m.keys.Help):
+		case key.Matches(msg, keys.Help):
 			m.help.ShowAll = !m.help.ShowAll
 
-		// Edit filter
+		// Context
+		case key.Matches(msg, keys.Context):
+			m.State = StateContext
+			return m, nil
+
+		// Filter
 		case key.Matches(msg, keys.Filter):
 			m.nav.StartFilter()
 			m.State = StateFilter
 
-		case key.Matches(msg, m.keys.ToggleDone):
-			m, cmd = m.toggleDone(msg)
+		case key.Matches(msg, keys.ToggleDone):
+			return m.toggleDone(msg)
 		}
 	}
 	m.tree, cmd = m.tree.Update(msg) // Handle keys for tree
+	return m, cmd
+}
+
+func (m Model) selectContext(msg tea.Msg) (Model, tea.Cmd) {
+	context := string(m.contexts.CurrentItem().(tk.ContextS))
+	tk.SetContext(context)
+	m.RunContext()
+	m.RunFilters()
+	return m, nil
+}
+
+func (m Model) handleContext(msg tea.Msg) (Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		// Quit
+		case key.Matches(msg, keys.Quit):
+			m.quitting = true
+			return m, tea.Quit
+
+		// Help
+		case key.Matches(msg, m.keys.Help):
+			m.help.ShowAll = !m.help.ShowAll
+
+		// Context
+		case key.Matches(msg, keys.Context):
+			m.State = StateHome
+			return m, nil
+
+		case key.Matches(msg, m.keys.Accept):
+			m.State = StateHome
+			return m.selectContext(msg)
+		}
+	}
+	m.contexts, cmd = m.contexts.Update(msg) // Handle keys for contexts
 	return m, cmd
 }
 
@@ -164,6 +239,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m, cmd = m.handleHome(msg)
 	case StateFilter:
 		m.nav, cmd = m.nav.Update(msg) // Delegate to nav
+	case StateContext:
+		m, cmd = m.handleContext(msg)
 	default: // should never occur
 	}
 

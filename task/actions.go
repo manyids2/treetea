@@ -29,6 +29,22 @@ func List(filters []string) ([]Task, error) {
 	return tasks_list, err
 }
 
+// Get all contexts
+func Contexts() []string {
+	// Run context command
+	contexts := []string{}
+	cmd := exec.Command("task", "_context")
+	out, err := cmd.Output()
+	if err != nil {
+		return contexts
+	}
+
+	// Split by lines
+	lines := strings.Split(string(out), "\n")
+	contexts = lines[:len(lines)-1]
+	return contexts
+}
+
 // Parse current context
 func Context() (string, string, string) {
 	// Run context command
@@ -69,6 +85,12 @@ func Context() (string, string, string) {
 	write_filters = match[1]
 
 	return context, read_filters, write_filters
+}
+
+func SetContext(context string) error {
+	cmd := exec.Command("task", "context", context)
+	_, err := cmd.Output()
+	return err
 }
 
 // SetStatus Set task status

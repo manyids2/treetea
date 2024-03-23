@@ -134,7 +134,7 @@ func New() Model {
 func (m *Model) Load(items Items) {
 	// Keep ref to old current key, account for first load
 	old_key := ""
-	if m.Current >= 0 {
+	if (m.Current >= 0) && (len(m.Order) > m.Current) {
 		old_key = m.Order[m.Current]
 	}
 
@@ -239,6 +239,11 @@ func (m Model) viewItem(id string) string {
 func (m Model) View() string {
 	content := "\n"
 	minIdx, maxIdx := m.pages.GetSliceBounds(len(m.Items))
+	if maxIdx == minIdx {
+		content += fmt.Sprintf("\n%s No items found.\n", m.Padding)
+		return content
+	}
+
 	for _, v := range m.Order[minIdx:maxIdx] {
 		content += m.viewItem(v)
 	}

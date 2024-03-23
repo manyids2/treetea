@@ -84,3 +84,14 @@ func (t Task) Extra() string {
 	}
 	return fmt.Sprintf(" ( %s )", ISO8601_to_DateTime(t.Due).Format("06-01-02"))
 }
+
+// Context struct
+type ContextS string
+
+func (c ContextS) Key() string {
+	return string(c)
+}
+
+func (t ContextS) Children() []string {
+	return []string{}
+}

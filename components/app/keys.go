@@ -13,11 +13,13 @@ type keyMap struct {
 	Left  key.Binding
 	Right key.Binding
 
-	Quit   key.Binding
-	Filter key.Binding
-	Help   key.Binding
+	Quit    key.Binding
+	Filter  key.Binding
+	Context key.Binding
+	Help    key.Binding
 
 	ToggleDone key.Binding
+	Accept     key.Binding
 }
 
 var keys = keyMap{
@@ -53,6 +55,10 @@ var keys = keyMap{
 		key.WithKeys("/"),
 		key.WithHelp("/", "filter"),
 	),
+	Context: key.NewBinding(
+		key.WithKeys("c"),
+		key.WithHelp("c", "context"),
+	),
 	Help: key.NewBinding(
 		key.WithKeys("?"),
 		key.WithHelp("?", "toggle help"),
@@ -60,6 +66,10 @@ var keys = keyMap{
 	ToggleDone: key.NewBinding(
 		key.WithKeys(" "),
 		key.WithHelp("space", "toggle done"),
+	),
+	Accept: key.NewBinding(
+		key.WithKeys("enter", " "),
+		key.WithHelp("enter/space", "accept"),
 	),
 }
 
@@ -69,7 +79,7 @@ func (k keyMap) ShortHelp() []key.Binding {
 
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Filter, k.Help, k.Quit},
+		{k.Context, k.Filter, k.Help, k.Quit},
 		{k.Up, k.Down, k.Top, k.Bottom},
 		{k.Left, k.Right},
 		{k.ToggleDone},
