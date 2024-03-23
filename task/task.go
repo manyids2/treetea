@@ -45,6 +45,7 @@ func ISO8601_to_DateTime(d ISO8601) time.Time {
 
 // Task struct defined at [Taskwarrior JSON format]()
 type Task struct {
+	ID          int               `json:"id,omitempty"`
 	Status      string            `json:"status"`
 	UUID        string            `json:"uuid"`
 	Entry       ISO8601           `json:"entry"`
@@ -97,6 +98,10 @@ func (t Task) Extra(name string) string {
 		return "  " + strings.Join(t.Tags, " ")
 	case "uuid":
 		return t.UUID[:8]
+	case "id":
+		return fmt.Sprintf("%d", t.ID)
+	case "project":
+		return t.Project
 	}
 	return ""
 }

@@ -17,6 +17,7 @@ type keyMap struct {
 	QuitQ   key.Binding
 	Filter  key.Binding
 	Context key.Binding
+	Project key.Binding
 	Help    key.Binding
 
 	Done        key.Binding
@@ -31,9 +32,12 @@ type keyMap struct {
 	SelectTree  key.Binding
 	SelectClear key.Binding
 
-	TagsShow key.Binding
-	DueShow  key.Binding
-	IDsShow  key.Binding
+	ShowID      key.Binding
+	ShowUUID    key.Binding
+	ShowDue     key.Binding
+	ShowTags    key.Binding
+	ShowProject key.Binding
+	ShowContext key.Binding
 
 	Accept key.Binding
 	Cancel key.Binding
@@ -76,6 +80,10 @@ var keys = keyMap{
 	Context: key.NewBinding(
 		key.WithKeys("c"),
 		key.WithHelp("c", "context"),
+	),
+	Project: key.NewBinding(
+		key.WithKeys("p"),
+		key.WithHelp("p", "project"),
 	),
 	Accept: key.NewBinding(
 		key.WithKeys("enter", " "),
@@ -133,17 +141,29 @@ var keys = keyMap{
 	),
 
 	// Toggles
-	TagsShow: key.NewBinding(
+	ShowContext: key.NewBinding( // TODO: needs to be implemented
+		key.WithKeys("C"),
+		key.WithHelp("C", "show context"),
+	),
+	ShowTags: key.NewBinding(
 		key.WithKeys("T"),
 		key.WithHelp("T", "show tags"),
 	),
-	DueShow: key.NewBinding(
+	ShowDue: key.NewBinding(
 		key.WithKeys("D"),
 		key.WithHelp("D", "show due"),
 	),
-	IDsShow: key.NewBinding(
+	ShowID: key.NewBinding(
 		key.WithKeys("I"),
-		key.WithHelp("I", "show uuids"),
+		key.WithHelp("I", "show id"),
+	),
+	ShowUUID: key.NewBinding(
+		key.WithKeys("U"),
+		key.WithHelp("U", "show uuid"),
+	),
+	ShowProject: key.NewBinding(
+		key.WithKeys("P"),
+		key.WithHelp("P", "show project"),
 	),
 
 	// Global
@@ -162,14 +182,14 @@ var keys = keyMap{
 }
 
 func (k keyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Help, k.Quit}
+	return []key.Binding{k.Quit, k.Help}
 }
 
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Help, k.Done, k.Quit, k.Filter, k.Context, k.TagsShow, k.DueShow},
+		{k.Quit, k.Help, k.Filter, k.Context, k.Project, k.ShowTags, k.ShowDue},
 		{k.Up, k.Down, k.Top, k.Bottom, k.Left, k.Right},
-		{k.Edit, k.Editor, k.Modify, k.AddChild, k.AddSibling, k.Delete},
+		{k.Done, k.Edit, k.Editor, k.Modify, k.AddChild, k.AddSibling, k.Delete},
 		{k.Select, k.SelectTree, k.SelectClear},
 	}
 }

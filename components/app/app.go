@@ -28,6 +28,7 @@ const (
 	StateHome = iota
 	StateFilter
 	StateContext
+	StateProject
 	StateEdit
 	StateModify
 	StateAdd
@@ -39,6 +40,7 @@ type Model struct {
 	Filters []string
 
 	// Context
+	Project      string
 	Context      string
 	ReadFilters  string
 	WriteFilters string
@@ -60,7 +62,10 @@ type Model struct {
 	help help.Model
 	keys keyMap
 
-	contexts tree.Model // Context selection
+	// Lists for filters
+	contexts tree.Model
+	projects tree.Model
+	filters  tree.Model
 }
 
 func tasksToItems(tasks []tk.Task) []tree.Item {
@@ -92,6 +97,8 @@ func NewModel(filters []string) Model {
 		help:     help.New(),
 		keys:     keys,
 		contexts: tree.New(),
+		projects: tree.New(),
+		filters:  tree.New(),
 	}
 
 	// How to add default passdown args?
@@ -100,6 +107,7 @@ func NewModel(filters []string) Model {
 
 	// Get all available contexts
 	m.RunContexts()
+	m.RunProjects()
 
 	// Get initial context, tasks
 	m.RunContext()
@@ -113,11 +121,30 @@ func (m Model) Init() tea.Cmd {
 	return nil
 }
 
+// RunContext Run `task context show` to get context, filters
 func (m *Model) RunContext() {
 	m.Context, m.ReadFilters, m.WriteFilters = tk.Context()
-	m.nav.Load(m.Context, m.Filters)
+	m.SetProject()
+	m.nav.Load(m.Project, m.Context, m.Filters)
 }
 
+// GetProject Find if `project:...` is part of filters
+func (m *Model) SetProject() {
+	project := ""
+	parts := strings.Split(m.ReadFilters, " ")
+	parts = append(parts, m.Filters...)
+	for _, v := range parts {
+		if len(v) < 9 {
+			continue
+		}
+		if v[:8] == "project:" {
+			project = v[8:]
+		}
+	}
+	m.Project = project
+}
+
+// RunContext Run `task export active` to get context, filters
 func (m *Model) RunActive() {
 	m.Active = tk.Active()
 	m.tree.Active = m.Active
@@ -126,6 +153,7 @@ func (m *Model) RunActive() {
 func (m *Model) RunFilters() {
 	read_filters := strings.Split(m.ReadFilters, " ")
 	read_filters = append(read_filters, m.Filters...)
+	read_filters = append(read_filters, "project:"+m.Project)
 	tasks, _ := tk.List(read_filters)
 	items := tasksToItems(tasks)
 	m.tree.Load(items)
@@ -137,6 +165,12 @@ func (m *Model) RunContexts() {
 	m.contexts.Load(items)
 }
 
+func (m *Model) RunProjects() {
+	projects := tk.Projects()
+	items := contextsToItems(projects)
+	m.projects.Load(items)
+}
+
 func (m Model) View() string {
 	if m.quitting || m.State == StateInit {
 		return ""
@@ -146,6 +180,10 @@ func (m Model) View() string {
 	case StateContext:
 		content = m.nav.View() + "\n" +
 			m.contexts.View() + "\n" +
+			m.help.View(m.keys)
+	case StateProject:
+		content = m.nav.View() + "\n" +
+			m.projects.View() + "\n" +
 			m.help.View(m.keys)
 	default:
 		content = m.nav.View() + "\n" +
@@ -194,6 +232,14 @@ func (m Model) editorTask(msg tea.Msg) (Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m *Model) toggleExtra(extra string) {
+	if m.tree.Extra == "" {
+		m.tree.Extra = extra
+	} else {
+		m.tree.Extra = ""
+	}
+}
+
 func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
@@ -211,6 +257,11 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 		// Context
 		case key.Matches(msg, keys.Context):
 			m.State = StateContext
+			return m, nil
+
+		// Project
+		case key.Matches(msg, keys.Project):
+			m.State = StateProject
 			return m, nil
 
 		// Filter
@@ -247,30 +298,28 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 			return m.deleteTask(msg)
 
 		// Toggle tags
-		case key.Matches(msg, keys.TagsShow):
-			if m.tree.Extra == "" {
-				m.tree.Extra = "tags"
-			} else {
-				m.tree.Extra = ""
-			}
+		case key.Matches(msg, keys.ShowTags):
+			m.toggleExtra("tags")
 			return m, nil
 
 		// Toggle due
-		case key.Matches(msg, keys.DueShow):
-			if m.tree.Extra == "" {
-				m.tree.Extra = "due"
-			} else {
-				m.tree.Extra = ""
-			}
+		case key.Matches(msg, keys.ShowDue):
+			m.toggleExtra("due")
+			return m, nil
+
+		// Toggle id
+		case key.Matches(msg, keys.ShowID):
+			m.toggleExtra("id")
 			return m, nil
 
 		// Toggle uuid
-		case key.Matches(msg, keys.IDsShow):
-			if m.tree.Extra == "" {
-				m.tree.Extra = "uuid"
-			} else {
-				m.tree.Extra = ""
-			}
+		case key.Matches(msg, keys.ShowUUID):
+			m.toggleExtra("uuid")
+			return m, nil
+
+		// Toggle project
+		case key.Matches(msg, keys.ShowProject):
+			m.toggleExtra("project")
 			return m, nil
 
 		// Toggle uuid
@@ -326,6 +375,58 @@ func (m Model) handleContext(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	}
 	m.contexts, cmd = m.contexts.Update(msg) // Handle keys for contexts
+	return m, cmd
+}
+
+func (m Model) selectProject(msg tea.Msg) (Model, tea.Cmd) {
+	project := string(m.projects.CurrentItem().(tk.ContextS))
+
+	// Load project as ReadFilters
+	m.Project = project
+	tk.SetContext("none")
+	m.Context = "none"
+	m.ReadFilters = ""
+	m.WriteFilters = ""
+	m.nav.Load(m.Project, m.Context, m.Filters)
+	m.RunFilters()
+	return m, nil
+}
+
+func (m Model) handleProject(msg tea.Msg) (Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		// Quit only q, ctrl-c
+		case key.Matches(msg, keys.QuitQ):
+			m.quitting = true
+			return m, tea.Quit
+
+		// Help
+		case key.Matches(msg, m.keys.Help):
+			m.help.ShowAll = !m.help.ShowAll
+
+		// Context
+		case key.Matches(msg, keys.Project):
+			m.State = StateHome
+			return m, nil
+
+		// Accept context
+		case key.Matches(msg, m.keys.Accept):
+			m.State = StateHome
+			return m.selectProject(msg)
+
+		// Dont allow edit
+		case key.Matches(msg, m.keys.Edit):
+			return m, nil
+
+		// Cancel context
+		case key.Matches(msg, m.keys.Cancel):
+			m.State = StateHome
+			return m, nil
+		}
+	}
+	m.projects, cmd = m.projects.Update(msg) // Handle keys for contexts
 	return m, cmd
 }
 
@@ -397,6 +498,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m, cmd = m.handleHome(msg)
 	case StateContext:
 		m, cmd = m.handleContext(msg)
+	case StateProject:
+		m, cmd = m.handleProject(msg)
 	case StateFilter:
 		m.nav, cmd = m.nav.Update(msg) // Delegate to nav
 	case StateEdit:

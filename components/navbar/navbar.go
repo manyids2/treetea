@@ -12,6 +12,7 @@ import (
 type Styles struct {
 	Filters lgs.Style
 	Editing lgs.Style
+	Project lgs.Style
 	Context lgs.Style
 	Icons   lgs.Style
 }
@@ -20,7 +21,8 @@ func NewStyles() Styles {
 	return Styles{
 		Filters: lgs.NewStyle().Foreground(lgs.Color(ccc.ColorMutedForeground)),
 		Editing: lgs.NewStyle().Foreground(lgs.Color(ccc.ColorAlert)).Italic(true),
-		Context: lgs.NewStyle().Foreground(lgs.Color(ccc.ColorForeground)).Bold(true),
+		Project: lgs.NewStyle().Foreground(lgs.Color(ccc.ColorForeground)).Bold(true),
+		Context: lgs.NewStyle().Foreground(lgs.Color(ccc.ColorMutedForeground)).Italic(true),
 		Icons:   lgs.NewStyle().Foreground(lgs.Color(ccc.ColorForeground)).Bold(true),
 	}
 }
@@ -33,6 +35,7 @@ const (
 )
 
 type Model struct {
+	Project string
 	Context string
 	Filters []string
 
@@ -66,7 +69,8 @@ func New() Model {
 	return m
 }
 
-func (m *Model) Load(context string, filters []string) {
+func (m *Model) Load(project, context string, filters []string) {
+	m.Project = project
 	m.Context = context
 	m.Filters = filters
 	m.input.SetValue(strings.Join(filters, " "))
@@ -77,11 +81,15 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) viewIcon() string {
-	return m.Styles.Icons.Render(ccc.IconUIFilter + " " + ccc.IconUIBar)
+	return m.Styles.Icons.Render(" " + ccc.IconUIBar)
 }
 
 func (m Model) viewContext() string {
 	return m.Styles.Context.Render(m.Context)
+}
+
+func (m Model) viewProject() string {
+	return m.Styles.Project.Render(m.Project)
 }
 
 func (m Model) viewFilters() string {
@@ -100,10 +108,14 @@ func (m Model) View() string {
 	//
 	return "\n" +
 		m.Padding +
+		m.Styles.Icons.Render(ccc.IconUIFilter) +
 		m.viewIcon() +
-		m.viewContext() +
-		m.Styles.Icons.Render("  "+ccc.IconUIBar) +
-		m.viewFilters()
+		m.viewProject() +
+		m.viewIcon() +
+		m.Padding +
+		m.viewFilters() +
+		m.Padding +
+		m.viewContext()
 }
 
 // Returns current input value

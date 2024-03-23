@@ -87,6 +87,22 @@ func Context() (string, string, string) {
 	return context, read_filters, write_filters
 }
 
+// Get all Projects
+func Projects() []string {
+	// Run context command
+	projects := []string{}
+	cmd := exec.Command("task", "_projects")
+	out, err := cmd.Output()
+	if err != nil {
+		return projects
+	}
+
+	// Split by lines
+	lines := strings.Split(string(out), "\n")
+	projects = lines[:len(lines)-1]
+	return projects
+}
+
 func Active() string {
 	cmd := exec.Command("task", "export", "active")
 	out, err := cmd.Output()
