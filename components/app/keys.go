@@ -19,8 +19,10 @@ type keyMap struct {
 	Context key.Binding
 	Help    key.Binding
 
-	Done key.Binding
-	Edit key.Binding
+	Done       key.Binding
+	Edit       key.Binding
+	AddChild   key.Binding
+	AddSibling key.Binding
 
 	Accept key.Binding
 	Cancel key.Binding
@@ -66,11 +68,11 @@ var keys = keyMap{
 	),
 	Accept: key.NewBinding(
 		key.WithKeys("enter", " "),
-		key.WithHelp("enter/space", "accept"),
+		key.WithHelp("enter/space", "accept context"),
 	),
 	Cancel: key.NewBinding(
 		key.WithKeys("esc"),
-		key.WithHelp("esc", "cancel"),
+		key.WithHelp("esc", "cancel context"),
 	),
 
 	// Task actions
@@ -81,6 +83,14 @@ var keys = keyMap{
 	Edit: key.NewBinding(
 		key.WithKeys("e"),
 		key.WithHelp("e", "edit"),
+	),
+	AddChild: key.NewBinding(
+		key.WithKeys("a"),
+		key.WithHelp("a", "add child"),
+	),
+	AddSibling: key.NewBinding(
+		key.WithKeys("A"),
+		key.WithHelp("A", "add sibling"),
 	),
 
 	// Global
@@ -104,8 +114,8 @@ func (k keyMap) ShortHelp() []key.Binding {
 
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Done, k.Filter, k.Help, k.Quit},
+		{k.Help, k.Quit, k.Filter, k.Context, k.Accept, k.Cancel},
 		{k.Up, k.Down, k.Top, k.Bottom, k.Left, k.Right},
-		{k.Context, k.Accept, k.Cancel},
+		{k.Done, k.Edit, k.AddChild, k.AddSibling},
 	}
 }

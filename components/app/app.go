@@ -19,6 +19,7 @@ const (
 	StateFilter
 	StateContext
 	StateEdit
+	StateAdd
 )
 
 type Model struct {
@@ -179,6 +180,14 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 		// Edit
 		case key.Matches(msg, keys.Edit):
 			m.State = StateEdit
+
+		// Add child
+		case key.Matches(msg, keys.AddChild):
+			m.State = StateAdd
+
+		// Add sibling
+		case key.Matches(msg, keys.AddSibling):
+			m.State = StateAdd
 		}
 	}
 	m.tree, cmd = m.tree.Update(msg) // Handle keys for tree
@@ -249,15 +258,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.State = StateHome
 		m.RunFilters()
 
-	case tree.CancelledMsg:
+	case tree.EditCancelledMsg:
 		m.State = StateHome
 
-	case tree.ChangedMsg:
+	case tree.EditChangedMsg:
 		m.State = StateHome
 		task := m.tree.CurrentItem().(tk.Task)
 		desc := string(msg)
 		tk.ModifyDescription(task.UUID, desc)
 		m.RunFilters() // Basically just reload
+
+	case tree.AddCancelledMsg:
+		m.State = StateHome
+
+	case tree.AddChangedMsg:
+		m.State = StateHome
 	}
 
 	switch m.State {
@@ -268,6 +283,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case StateFilter:
 		m.nav, cmd = m.nav.Update(msg) // Delegate to nav
 	case StateEdit:
+		m.tree, cmd = m.tree.Update(msg) // Delegate to tree
+	case StateAdd:
 		m.tree, cmd = m.tree.Update(msg) // Delegate to tree
 	default: // should never occur
 	}
