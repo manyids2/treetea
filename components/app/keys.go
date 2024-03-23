@@ -23,6 +23,7 @@ type keyMap struct {
 	Edit       key.Binding
 	AddChild   key.Binding
 	AddSibling key.Binding
+	Delete     key.Binding
 
 	Accept key.Binding
 	Cancel key.Binding
@@ -85,12 +86,16 @@ var keys = keyMap{
 		key.WithHelp("e", "edit"),
 	),
 	AddChild: key.NewBinding(
-		key.WithKeys("a"),
-		key.WithHelp("a", "add child"),
+		key.WithKeys("A"),
+		key.WithHelp("A", "add child"),
 	),
 	AddSibling: key.NewBinding(
-		key.WithKeys("A"),
-		key.WithHelp("A", "add sibling"),
+		key.WithKeys("a"),
+		key.WithHelp("a", "add sibling"),
+	),
+	Delete: key.NewBinding(
+		key.WithKeys("D"),
+		key.WithHelp("D", "delete task"),
 	),
 
 	// Global
@@ -116,6 +121,6 @@ func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Help, k.Quit, k.Filter, k.Context, k.Accept, k.Cancel},
 		{k.Up, k.Down, k.Top, k.Bottom, k.Left, k.Right},
-		{k.Done, k.Edit, k.AddChild, k.AddSibling},
+		{k.Done, k.Edit, k.AddChild, k.AddSibling, k.Delete},
 	}
 }

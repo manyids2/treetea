@@ -149,6 +149,13 @@ func (m Model) toggleDone(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) deleteTask(msg tea.Msg) (Model, tea.Cmd) {
+	task := m.tree.CurrentItem().(tk.Task)
+	tk.Delete(task.UUID)
+	m.RunFilters()
+	return m, nil
+}
+
 func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
@@ -188,6 +195,10 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 		// Add sibling
 		case key.Matches(msg, keys.AddSibling):
 			m.State = StateAdd
+
+		// Delete
+		case key.Matches(msg, keys.Delete):
+			return m.deleteTask(msg)
 		}
 	}
 	m.tree, cmd = m.tree.Update(msg) // Handle keys for tree
@@ -273,6 +284,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tree.AddChangedMsg:
 		m.State = StateHome
+		out := []string(msg)
+		desc := out[0]
+		parent := out[1]
+		write_filters := strings.Split(m.WriteFilters, " ")
+		write_filters = append(write_filters, m.Filters...)
+		tk.Add(write_filters, desc, parent)
+		m.RunFilters() // Basically just reload
 	}
 
 	switch m.State {

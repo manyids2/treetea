@@ -108,6 +108,9 @@ type Model struct {
 	// Keeping track of the list
 	Current int
 
+	// Keeping track of parent when adding
+	Parent string
+
 	// Pages
 	pages paginator.Model
 	input textinput.Model
@@ -210,11 +213,11 @@ func (m *Model) IndexLevels(id string, level int) {
 }
 
 func (m *Model) IndexOrder(id string) {
-	m.Order = append(m.Order, id)
 	n := m.Items.Get(id)
 	if n == nil {
 		return
 	}
+	m.Order = append(m.Order, id)
 	for _, c := range n.Children() {
 		m.IndexOrder(c)
 	}
@@ -248,13 +251,13 @@ func (m Model) viewItem(id string) string {
 		switch m.State {
 		case StateEdit:
 			style = m.Styles.EditText
-			text = m.input.View()
+			text = fmt.Sprintf("   %s", m.input.View())
 		case StateAdd:
 			add_style := m.Styles.EditText
 			add_text = fmt.Sprintf("%s %s%s\n",
 				m.Padding,
 				m.viewIcon(id),
-				add_style.Render(fmt.Sprintf("%s    %s  ", indent, m.input.View())),
+				add_style.Render(fmt.Sprintf("%s    %s", indent, m.input.View())),
 			)
 		default:
 			style = m.Styles.CurrentText
@@ -268,14 +271,14 @@ func (m Model) viewItem(id string) string {
 		content = fmt.Sprintf("%s %s%s\n",
 			m.Padding,
 			m.viewIcon(id),
-			style.Render(fmt.Sprintf("%s %s  ", indent, text)),
+			style.Render(fmt.Sprintf("%s %s", indent, text)),
 		)
 
 	case StateAdd:
 		content = fmt.Sprintf("%s %s%s\n%s",
 			m.Padding,
 			m.viewIcon(""),
-			style.Render(fmt.Sprintf("%s %s  ", indent, text)),
+			style.Render(fmt.Sprintf("%s %s", indent, text)),
 			add_text,
 		)
 
@@ -358,12 +361,12 @@ var keys = keyMap{
 		key.WithHelp("e", "edit"),
 	),
 	AddChild: key.NewBinding(
-		key.WithKeys("a"),
-		key.WithHelp("a", "add child"),
+		key.WithKeys("A"),
+		key.WithHelp("A", "add child"),
 	),
 	AddSibling: key.NewBinding(
-		key.WithKeys("A"),
-		key.WithHelp("A", "add sibling"),
+		key.WithKeys("a"),
+		key.WithHelp("a", "add sibling"),
 	),
 }
 
@@ -381,6 +384,7 @@ func changedEdit(m Model) tea.Cmd {
 func cancelEdit(m Model) tea.Cmd {
 	return func() tea.Msg {
 		task := m.CurrentItem()
+		m.input.Placeholder = task.Val()
 		m.input.SetValue(task.Val())
 		return EditCancelledMsg(m.input.Value()) //
 	}
@@ -388,35 +392,42 @@ func cancelEdit(m Model) tea.Cmd {
 
 func (m *Model) StartEdit() {
 	task := m.CurrentItem()
+	m.input.Focus()
 	m.input.Placeholder = task.Val()
 	m.input.SetValue(task.Val())
-	m.input.Focus()
 }
 
-// Returns current input value
-type AddChangedMsg string
+// Returns current input value and parent
+type AddChangedMsg []string
 type AddCancelledMsg string
 
 func changedAdd(m Model) tea.Cmd {
+	key := m.Parent
+	m.Parent = ""
 	return func() tea.Msg {
-		return AddChangedMsg(m.input.Value())
+		return AddChangedMsg([]string{m.input.Value(), key})
 	}
 }
 
 func cancelAdd(m Model) tea.Cmd {
 	return func() tea.Msg {
+		m.input.Placeholder = ""
 		m.input.SetValue("")
+		m.Parent = ""
 		return AddCancelledMsg(m.input.Value()) //
 	}
 }
 
 func (m *Model) StartAddChild() {
+	m.Parent = m.CurrentItem().Key()
 	m.input.Placeholder = ""
 	m.input.SetValue("")
 	m.input.Focus()
 }
 
 func (m *Model) StartAddSibling() {
+	current := m.CurrentItem().Key()
+	m.Parent = m.Parents[current]
 	m.input.Placeholder = ""
 	m.input.SetValue("")
 	m.input.Focus()
