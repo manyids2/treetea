@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 
+	"github.com/manyids2/tasktea/task/actions"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +14,27 @@ var rootCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(args)
+		_, taskrc := actions.Paths()
+		cfg, err := actions.ParseRc(taskrc)
+
+		contexts := actions.RcExtract("context", cfg)
+		for k, v := range contexts {
+			fmt.Println(k, "---", v)
+		}
+
+		reports := actions.RcExtract("report", cfg)
+		for k, v := range reports {
+			fmt.Println(k, "---", v)
+		}
+
+		urgency := actions.RcExtract("urgency", cfg)
+		for k, v := range urgency {
+			fmt.Println(k, "---", v)
+		}
+
+		if err != nil {
+			log.Fatalln(err)
+		}
 	},
 }
 

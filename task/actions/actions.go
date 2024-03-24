@@ -1,14 +1,78 @@
 package actions
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 
 	tw "github.com/manyids2/tasktea/task"
 )
+
+// Paths Get paths to taskdata and taskrc
+func Paths() (taskdata, taskrc string) {
+	taskdata, _ = os.LookupEnv("TASKDATA")
+	taskrc, _ = os.LookupEnv("TASKRC")
+	return taskdata, taskrc
+}
+
+type Config map[string]string
+
+// ParseRc Parse taskrc and return map of keys and values
+func ParseRc(path string) (cfg Config, err error) {
+	readFile, err := os.Open(path)
+	if err != nil {
+		return cfg, err
+	}
+	fileScanner := bufio.NewScanner(readFile)
+	fileScanner.Split(bufio.ScanLines)
+	r := regexp.MustCompile(`(?P<Key>[0-9a-zA-Z_\-\.]+)=(?P<Val>.*)`)
+
+	cfg = map[string]string{}
+	for fileScanner.Scan() {
+		if len(fileScanner.Text()) == 0 {
+			continue
+		}
+		if fileScanner.Text()[0] == '#' {
+			continue
+		}
+		match := r.FindStringSubmatch(fileScanner.Text())
+		if len(match) != 3 {
+			continue
+		}
+		cfg[match[1]] = match[2]
+	}
+	readFile.Close()
+	return cfg, nil
+}
+
+// RcExtract Extract contexts and reports which are 2 level nested, and rest are kept at 2 levels
+// if one level, the second key is ""
+// if no dots, just query the map, do not use this function
+func RcExtract(key string, cfg Config) (reports map[string]map[string]string) {
+	reports = map[string]map[string]string{}
+	for k, v := range cfg {
+		parts := strings.Split(k, ".")
+		if (parts[0] == key) && (len(parts) > 1) {
+			_, ok := reports[parts[1]]
+			if !ok {
+				reports[parts[1]] = map[string]string{}
+			}
+			subkey := ""
+			if len(parts) > 2 {
+				subkey = parts[2]
+			}
+			if len(parts) > 3 {
+				subkey = strings.Join(parts[2:], ".")
+			}
+			reports[parts[1]][subkey] = v
+		}
+	}
+	return reports
+}
 
 // List Get list of tasks given filters
 //
