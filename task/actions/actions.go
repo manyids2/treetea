@@ -13,165 +13,127 @@ import (
 // List Get list of tasks given filters
 //
 // `task [filters] export`
-func List(filters []string) ([]tw.Task, error) {
-	// Setup command
+func List(filters []string) (tasks_list []tw.Task, err error) {
 	filters = append(filters, "export")
-	cmd := exec.Command("task", filters...)
-
-	// Get json formatted array of tasks, return empty if error
-	out, err := cmd.Output()
+	out, err := exec.Command("task", filters...).Output()
 	if err != nil {
-		return []tw.Task{}, err
+		return nil, err
 	}
-
-	// Parse json output, return empty if error
-	var tasks_list []tw.Task
-	if err := json.Unmarshal(out, &tasks_list); err != nil {
-		return []tw.Task{}, err
+	if err = json.Unmarshal(out, &tasks_list); err != nil {
+		return nil, err
 	}
-
-	return tasks_list, err
+	return tasks_list, nil
 }
 
 // List Get list of active tasks
 //
 // `task export active`
-func Active() []string {
-	active := []string{}
-	cmd := exec.Command("task", "export", "active")
-	out, err := cmd.Output()
-	if err != nil {
-		return active
-	}
-
-	// Parse json output, return empty if error
+func Active() (active []string, err error) {
 	var tasks_list []tw.Task
+	out, err := exec.Command("task", "export", "active").Output()
+	if err != nil {
+		return nil, err
+	}
 	if err := json.Unmarshal(out, &tasks_list); err != nil {
-		return active
+		return nil, err
 	}
 
-	// Add all active tasks
+	active = []string{}
 	for _, v := range tasks_list {
 		active = append(active, v.UUID)
 	}
-	return active
+	return active, nil
 }
 
 // Contexts Get all contexts
 //
 // `task _context`
-func Contexts() []string {
-	// Run context command
-	contexts := []string{}
-	cmd := exec.Command("task", "_context")
-	out, err := cmd.Output()
+func Contexts() (contexts []string, err error) {
+	out, err := exec.Command("task", "_context").Output()
 	if err != nil {
-		return contexts
+		return nil, err
 	}
-
-	// Split by lines
 	lines := strings.Split(string(out), "\n")
-	contexts = lines[:len(lines)-1]
-	return contexts
+	contexts = lines[:len(lines)-1] // Remove last empty line
+	contexts = append(contexts, "none")
+	return contexts, nil
 }
 
 // Context Parse current context to get read and write filters
 //
+//	Assumes 1st line is context, 3rd is read filter and 4th is write filter
+//	- In case of "none", expected output is `No context is currently applied.`,
+//	  so it returns the correct results
+//
 // `task context show`
-func Context() (string, string, string) {
-	// Run context command
-	context := "none"
-	read_filters := ""
-	write_filters := ""
-	cmd := exec.Command("task", "context", "show")
-	out, err := cmd.Output()
+func Context() (context string, read_filters string, write_filters string, err error) {
+	context = "none"
+	out, err := exec.Command("task", "context", "show").Output()
 	if err != nil {
-		return context, read_filters, write_filters
+		return context, "", "", err
 	}
-
-	// Split by lines
 	lines := strings.Split(string(out), "\n")
 
-	// Context name
 	r := regexp.MustCompile(`Context '(?P<Context>[a-zA-Z]+)' with`)
 	match := r.FindStringSubmatch(lines[0])
-	if len(match) != 2 {
-		return context, read_filters, write_filters
-	}
 	context = match[1]
 
-	// Read filter
 	r = regexp.MustCompile(`\* read filter: '(?P<ReadFilter>.*)'`)
 	match = r.FindStringSubmatch(lines[2])
-	if len(match) != 2 {
-		return context, read_filters, write_filters
-	}
 	read_filters = match[1]
 
-	// Write filter
 	r = regexp.MustCompile(`\* write filter: '(?P<WriteFilter>.*)'`)
 	match = r.FindStringSubmatch(lines[3])
-	if len(match) != 2 {
-		return context, read_filters, write_filters
-	}
 	write_filters = match[1]
 
-	return context, read_filters, write_filters
+	return context, read_filters, write_filters, nil
 }
 
 // Projects Get all Projects
 //
 // `task _projects`
-func Projects() []string {
-	// Run context command
-	projects := []string{}
-	cmd := exec.Command("task", "_projects")
-	out, err := cmd.Output()
+func Projects() (projects []string, err error) {
+	out, err := exec.Command("task", "_projects").Output()
 	if err != nil {
-		return projects
+		return nil, err
 	}
-
-	// Split by lines
 	lines := strings.Split(string(out), "\n")
 	projects = lines[:len(lines)-1]
-	return projects
+	return projects, nil
 }
 
 // Projects Get all Projects
 //
 // `task context [context]`
-func SetContext(context string) error {
-	cmd := exec.Command("task", "context", context)
-	_, err := cmd.Output()
+func SetContext(context string) (err error) {
+	_, err = exec.Command("task", "context", context).Output()
 	return err
 }
 
 // SetStatus Set task status
 //
 // `task [uuid] modify status:[status]`
-func SetStatus(uuid string, status string) error {
+func SetStatus(uuid string, status string) (err error) {
 	args := []string{uuid, "modify", fmt.Sprintf("status:%s", status)}
-	cmd := exec.Command("task", args...)
-	_, err := cmd.Output()
+	_, err = exec.Command("task", args...).Output()
 	return err
 }
 
 // SetActive Start/stop task
 //
 // `task [uuid] [start/stop]`
-func SetActive(uuid string, startstop string) error {
+func SetActive(uuid string, startstop string) (err error) {
 	cmd := exec.Command("task", uuid, startstop)
-	_, err := cmd.Output()
+	_, err = cmd.Output()
 	return err
 }
 
-// LinkToParent Make task child of parent
+// SetParent Make task child of parent
 //
 // `task [uuid] modify depends:[parent]`
-func LinkToParent(uuid string, parent string) error {
+func SetParent(uuid string, parent string) (err error) {
 	args := []string{parent, "modify", fmt.Sprintf("depends:%s", uuid)}
-	cmd := exec.Command("task", args...)
-	_, err := cmd.Output()
+	_, err = exec.Command("task", args...).Output()
 	return err
 }
 
@@ -180,11 +142,10 @@ func LinkToParent(uuid string, parent string) error {
 // `task [uuid] modify depends:`
 // `task [parent] modify depends:[all children other than uuid]`
 // `task [grandparent] modify depends:[uuid]`
-func UnlinkFromParent(uuid string, parent string, grandparent string, depends []string) error {
+func SetGrandparentAsParent(uuid string, parent string, grandparent string, depends []string) (err error) {
 	// Remove all dependencies of parent
 	args := []string{parent, "modify", "depends:"}
-	cmd := exec.Command("task", args...)
-	_, err := cmd.Output()
+	_, err = exec.Command("task", args...).Output()
 	if err != nil {
 		return err
 	}
@@ -194,9 +155,8 @@ func UnlinkFromParent(uuid string, parent string, grandparent string, depends []
 		if v == uuid {
 			continue
 		}
-		args := []string{parent, "modify", fmt.Sprintf("depends:%s", v)}
-		cmd := exec.Command("task", args...)
-		_, err := cmd.Output()
+		args = []string{parent, "modify", fmt.Sprintf("depends:%s", v)}
+		_, err = exec.Command("task", args...).Output()
 		if err != nil {
 			return err
 		}
@@ -204,26 +164,27 @@ func UnlinkFromParent(uuid string, parent string, grandparent string, depends []
 
 	// Add current to grandparent
 	if grandparent != "" {
-		args := []string{grandparent, "modify", fmt.Sprintf("depends:%s", uuid)}
-		cmd := exec.Command("task", args...)
-		_, err := cmd.Output()
+		args = []string{grandparent, "modify", fmt.Sprintf("depends:%s", uuid)}
+		_, err := exec.Command("task", args...).Output()
 		if err != nil {
 			return err
 		}
 	}
-
 	return err
 }
 
 // Add Add task, get uuid and update parent's children
 //
-// `task add [tags] '[description]'`
+// `task add [tags] -- [description]`
 // `task [parent] modify depends:[uuid]`
-func Add(filters []string, description string, parent string) (string, error) {
+func Add(filters []string, description string, parent string) (uuid string, err error) {
 	// Removing things like `-tag`, `/.../` which dont make sense
 	// TODO: Maybe use regex, read spec to find out also whats up
 	tags := []string{}
 	for _, f := range filters {
+		if len(f) == 0 {
+			continue
+		}
 		if (string(f[0]) != "-") && (string(f[0]) != "/") {
 			tags = append(tags, f)
 		}
@@ -232,67 +193,64 @@ func Add(filters []string, description string, parent string) (string, error) {
 	// Add task
 	args := []string{"add"}
 	args = append(args, tags...)
-	args = append(args, fmt.Sprintf("'%s'", description))
-	cmd := exec.Command("task", args...)
-	out, err := cmd.Output()
+	args = append(args, "--", description)
+	out, err := exec.Command("task", args...).Output()
 	if err != nil {
 		return "", err
 	}
+	lines := strings.Split(string(out), "\n")
 
 	// Extract assigned UUID
-	// TODO: use regex or something a bit more solid
-	parts := strings.Split(string(out), " ")
-	uuid := parts[len(parts)-1]
-	uuid = strings.TrimRight(uuid, "\n")
-	uuid = strings.TrimRight(uuid, ".")
+	r := regexp.MustCompile(`Created task '(?P<UUID>.*)'`)
+	for _, v := range lines {
+		match := r.FindStringSubmatch(v)
+		if len(match) > 0 {
+			uuid = match[1]
+		}
+	}
 
 	// Update parent's dependencies
-	if parent != "" {
+	if (parent != "") && (uuid != "") {
 		args = []string{parent, "modify", fmt.Sprintf("depends:%s", uuid)}
-		cmd := exec.Command("task", args...)
-		_, err = cmd.Output()
+		_, err = exec.Command("task", args...).Output()
 	}
 	return uuid, err
 }
 
-// Modify task description
+// Modify task description, i.e. edit description
 //
-// `task [uuid] modify '[description]'`
-func ModifyDescription(uuid string, description string) error {
-	args := []string{uuid, "modify", fmt.Sprintf("'%s'", description)}
-	cmd := exec.Command("task", args...)
-	_, err := cmd.Output()
+// `task [uuid] modify -- [description]`
+func ModifyDescription(uuid string, description string) (err error) {
+	args := []string{uuid, "modify", "--", description}
+	_, err = exec.Command("task", args...).Output()
 	return err
 }
 
 // Modify task with arguments
 //
 // `task [uuid] modify [args]`
-func Modify(uuid string, args []string) error {
+func Modify(uuid string, args []string) (err error) {
 	out := []string{uuid, "modify"}
 	out = append(out, args...)
-	cmd := exec.Command("task", out...)
-	_, err := cmd.Output()
+	_, err = exec.Command("task", out...).Output()
 	return err
 }
 
 // ModifyBatch Modify multiple tasks with same arguments
 //
 // `task [uuids] modify [args]`
-func ModifyBatch(uuids []string, args []string) error {
+func ModifyBatch(uuids []string, args []string) (err error) {
 	out := append(uuids, "modify")
 	out = append(out, args...)
-	cmd := exec.Command("task", out...)
-	_, err := cmd.Output()
+	_, err = exec.Command("task", out...).Output()
 	return err
 }
 
 // Delete task, turn of confirmation
 //
 // `task [uuid] rc.confirmation=off delete`
-func Delete(uuid string) error {
+func Delete(uuid string) (err error) {
 	args := []string{uuid, "rc.confirmation=off", "delete"}
-	cmd := exec.Command("task", args...)
-	_, err := cmd.Output()
+	_, err = exec.Command("task", args...).Output()
 	return err
 }

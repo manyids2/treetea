@@ -14,11 +14,11 @@ const FORMAT_ISO8601 = "20060102T150405Z"
 
 // Task struct defined at [Taskwarrior JSON format]()
 type Task struct {
-	ID          int               `json:"id,omitempty"`
+	ID          int               `json:"id,omitempty"` // NOTE: ID is not a key!
+	UUID        string            `json:"uuid"`         // UUID is primary key
 	Status      string            `json:"status"`
-	UUID        string            `json:"uuid"`
-	Entry       ISO8601           `json:"entry"`
 	Description string            `json:"description"`
+	Entry       ISO8601           `json:"entry"`
 	Start       ISO8601           `json:"start,omitempty"`
 	End         ISO8601           `json:"end,omitempty"`
 	Due         ISO8601           `json:"due,omitempty"`
