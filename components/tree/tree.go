@@ -607,7 +607,7 @@ func cancelAdd(m Model) tea.Cmd {
 	}
 }
 
-func (m *Model) StartAdd() {
+func (m *Model) StartAddChild() {
 	current := m.CurrentItem()
 	if current != nil {
 		m.Parent = m.CurrentItem().Key()
@@ -616,6 +616,17 @@ func (m *Model) StartAdd() {
 	m.input.SetValue("")
 	m.input.Focus()
 }
+
+func (m *Model) StartAddSibling() {
+	current := m.CurrentItem()
+	if current != nil {
+		m.Parent = m.Parents[current.Key()]
+	}
+	m.input.Placeholder = ""
+	m.input.SetValue("")
+	m.input.Focus()
+}
+
 
 func (m Model) IsSelected(id string) bool {
 	for _, v := range m.Selected {
@@ -754,12 +765,12 @@ func (m Model) handleHome(msg tea.Msg) (Model, tea.Cmd) {
 		// Add child
 		case key.Matches(msg, keys.AddChild):
 			m.State = StateAdd
-			m.StartAdd()
+			m.StartAddChild()
 
 		// Add sibling
 		case key.Matches(msg, keys.AddSibling):
 			m.State = StateAdd
-			m.StartAdd()
+			m.StartAddSibling()
 
 		// Toggle select
 		case key.Matches(msg, keys.Select):
