@@ -620,13 +620,14 @@ func (m *Model) StartAddChild() {
 func (m *Model) StartAddSibling() {
 	current := m.CurrentItem()
 	if current != nil {
-		m.Parent = m.Parents[current.Key()]
+		if len(m.Parents) > 0 {
+			m.Parent = m.Parents[current.Key()]
+		}
 	}
 	m.input.Placeholder = ""
 	m.input.SetValue("")
 	m.input.Focus()
 }
-
 
 func (m Model) IsSelected(id string) bool {
 	for _, v := range m.Selected {

@@ -189,12 +189,15 @@ func UnlinkFromParent(uuid string, parent string, grandparent string, depends []
 
 // Add Add task and get uuid
 func Add(filters []string, description string, parent string) (string, error) {
+
 	// Removing things like `-tag`, `/.../` which dont make sense
 	// TODO: Maybe use regex, read spec to find out also whats up
 	tags := []string{}
 	for _, f := range filters {
-		if (string(f[0]) != "-") && (string(f[0]) != "/") {
-			tags = append(tags, f)
+		if len(f) > 0 {
+			if (string(f[0]) != "-") && (string(f[0]) != "/") {
+				tags = append(tags, f)
+			}
 		}
 	}
 
