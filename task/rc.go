@@ -1,5 +1,12 @@
 package task
 
+import (
+	"bufio"
+	"os"
+	"regexp"
+	"strings"
+)
+
 type Project struct {
 	Name     string
 	Children []string
@@ -48,4 +55,142 @@ type TaskRC struct {
 
 	TaskshAutoclear string // true/false
 	NewsVersion     string
+}
+
+// ReadRc Parse taskrc and return map of keys and values
+func ReadRc(path string) (cfg map[string]string, err error) {
+	r := regexp.MustCompile(`(?P<Key>[0-9a-zA-Z_\-\.]+)=(?P<Val>.*)`)
+	readFile, err := os.Open(path)
+	if err != nil {
+		return cfg, err
+	}
+	fileScanner := bufio.NewScanner(readFile)
+	fileScanner.Split(bufio.ScanLines)
+	cfg = map[string]string{}
+	for fileScanner.Scan() {
+		if len(fileScanner.Text()) == 0 {
+			continue
+		}
+		if fileScanner.Text()[0] == '#' {
+			continue
+		}
+		match := r.FindStringSubmatch(fileScanner.Text())
+		if len(match) != 3 { // Only of form [key]=[value]
+			continue
+		}
+		cfg[match[1]] = match[2]
+	}
+	readFile.Close()
+	return cfg, nil
+}
+
+// ExtractKey Extract 2 level nested keys, and rest are kept at 2 levels
+// if one level, the second key is ""
+// if no dots, just query the map, do not use this function
+func ExtractKey(key string, cfg map[string]string) (values map[string]map[string]string) {
+	values = map[string]map[string]string{}
+	for k, v := range cfg {
+		parts := strings.Split(k, ".")
+		if (parts[0] == key) && (len(parts) > 1) {
+			_, ok := values[parts[1]]
+			if !ok {
+				values[parts[1]] = map[string]string{}
+			}
+			subkey := ""
+			if len(parts) > 2 {
+				subkey = parts[2]
+			}
+			if len(parts) > 3 {
+				subkey = strings.Join(parts[2:], ".")
+			}
+			values[parts[1]][subkey] = v
+		}
+	}
+	return values
+}
+
+func LoadTaskRC(path string) (rc TaskRC, err error) {
+	cfg, err := ReadRc(path)
+	rc = TaskRC{}
+
+	// Single key variables
+	rc.DataLocation = cfg["data.location"]
+	rc.DefaultCommand = cfg["default.command"]
+	rc.Weekstart = cfg["weekstart"]
+	rc.CaseSensitive = cfg["search.case.sensitive"]
+	rc.Regex = cfg["regex"]
+	rc.ListAllProjects = cfg["list.all.projects"]
+	rc.ListAllTags = cfg["list.all.tags"]
+	rc.Verbose = cfg["verbose"]
+	rc.TaskshAutoclear = cfg["tasksh.autoclear"]
+	rc.NewsVersion = cfg["news.version"]
+
+	// Contexts
+	rc.Contexts = map[string]Context{}
+	for k, v := range cfg {
+		if len(k) < 9 {
+			continue
+		}
+		if k[:8] == "context." {
+			parts := strings.Split(k, ".")
+			if _, ok := rc.Contexts[parts[1]]; !ok {
+				rc.Contexts[parts[1]] = Context{}
+			}
+			if c, ok := rc.Contexts[parts[1]]; ok {
+				if parts[2] == "read" {
+					c.Read = v
+				} else if parts[2] == "write" {
+					c.Write = v
+				}
+				rc.Contexts[parts[1]] = c
+			}
+
+		}
+	}
+
+	// Reports
+	rc.Reports = map[string]Report{}
+	for k, v := range cfg {
+		if len(k) < 8 {
+			continue
+		}
+		if k[:7] == "report." {
+			parts := strings.Split(k, ".")
+			if _, ok := rc.Reports[parts[1]]; !ok {
+				rc.Reports[parts[1]] = Report{}
+			}
+			if c, ok := rc.Reports[parts[1]]; ok {
+				switch parts[2] {
+				case "description":
+					c.Description = v
+				case "columns":
+					c.Columns = strings.Split(v, ",")
+				case "labels":
+					c.Labels = strings.Split(v, ",")
+				case "sort":
+					c.Sort = v
+				case "filter":
+					c.Filter = v
+				}
+				rc.Reports[parts[1]] = c
+			}
+
+		}
+	}
+
+	// for k, v := range rc.Contexts {
+	// 	fmt.Println(k)
+	// 	fmt.Println("  Read : ", v.Read)
+	// 	fmt.Println("  Write: ", v.Write)
+	// }
+	//
+	// for k, v := range rc.Reports {
+	// 	fmt.Println(k)
+	// 	fmt.Println("  Description : ", v.Description)
+	// 	fmt.Println("  Columns     : ", v.Columns)
+	// 	fmt.Println("  Labels      : ", v.Labels)
+	// 	fmt.Println("  Sort        : ", v.Sort)
+	// 	fmt.Println("  Filter      : ", v.Filter)
+	// }
+	return rc, err
 }

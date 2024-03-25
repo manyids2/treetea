@@ -31,6 +31,7 @@ func ParseRc(path string) (cfg Config, err error) {
 	fileScanner.Split(bufio.ScanLines)
 	r := regexp.MustCompile(`(?P<Key>[0-9a-zA-Z_\-\.]+)=(?P<Val>.*)`)
 
+	// First load all into a map
 	cfg = map[string]string{}
 	for fileScanner.Scan() {
 		if len(fileScanner.Text()) == 0 {
@@ -46,20 +47,23 @@ func ParseRc(path string) (cfg Config, err error) {
 		cfg[match[1]] = match[2]
 	}
 	readFile.Close()
+
+	// Parse into TaskRC struct
+
 	return cfg, nil
 }
 
 // RcExtract Extract contexts and reports which are 2 level nested, and rest are kept at 2 levels
 // if one level, the second key is ""
 // if no dots, just query the map, do not use this function
-func RcExtract(key string, cfg Config) (reports map[string]map[string]string) {
-	reports = map[string]map[string]string{}
+func RcExtract(key string, cfg Config) (values map[string]map[string]string) {
+	values = map[string]map[string]string{}
 	for k, v := range cfg {
 		parts := strings.Split(k, ".")
 		if (parts[0] == key) && (len(parts) > 1) {
-			_, ok := reports[parts[1]]
+			_, ok := values[parts[1]]
 			if !ok {
-				reports[parts[1]] = map[string]string{}
+				values[parts[1]] = map[string]string{}
 			}
 			subkey := ""
 			if len(parts) > 2 {
@@ -68,10 +72,10 @@ func RcExtract(key string, cfg Config) (reports map[string]map[string]string) {
 			if len(parts) > 3 {
 				subkey = strings.Join(parts[2:], ".")
 			}
-			reports[parts[1]][subkey] = v
+			values[parts[1]][subkey] = v
 		}
 	}
-	return reports
+	return values
 }
 
 // List Get list of tasks given filters
