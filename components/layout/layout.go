@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	lg "github.com/charmbracelet/lipgloss"
 
@@ -18,16 +19,22 @@ import (
 type ViewState int
 
 const (
-	ViewHome = iota
+	ViewTasks = iota
+	ViewContexts
+	ViewProjects
+	ViewTags
+	ViewHistory
 )
 
 type Model struct {
 	// Essential
 	Width  int
 	Height int
-	State  ViewState
+	frame  lg.Style
+	keys   keyMap
 
 	// State of layout
+	State   ViewState
 	Context string
 	Filters tw.Filters
 	Tasks   []tw.Task
@@ -52,8 +59,10 @@ func New() (m Model) {
 	m = Model{
 		Width:  80,
 		Height: 24,
+		State:  ViewTasks,
 		nav:    nv.New(),
 		status: st.New(),
+		keys:   keys,
 	}
 	return m
 }
@@ -81,6 +90,7 @@ func (m *Model) LoadTasks(context string, filters tw.Filters) {
 	m.Tasks = tasks
 
 	// Update UI
+	m.State = ViewTasks
 	m.nav.Title = m.Context
 	m.nav.Description = m.Filters.Read
 	m.status.Message = fmt.Sprintf("%d Tasks", len(m.Tasks))
@@ -94,14 +104,28 @@ func (m *Model) Layout() {
 	m.status.Height = 2
 }
 
+func (m *Model) SetFrame(width, height int) {
+	m.Width, m.Height = width, height
+	m.frame = lg.NewStyle().Height(height).Width(width)
+}
+
 func (m Model) View() string {
-	var style = lg.NewStyle().
-		Height(m.Height).
-		Width(m.Width)
 	if !m.ready {
 		return "not ready"
 	}
-	return style.Render(m.nav.View() + "\n" + m.status.View())
+	switch m.State {
+	case ViewTasks:
+		m.nav.Title = m.Context
+	case ViewContexts:
+		m.nav.Title = "Contexts"
+	case ViewProjects:
+		m.nav.Title = "Projects"
+	case ViewTags:
+		m.nav.Title = "Tags"
+	case ViewHistory:
+		m.nav.Title = "History"
+	}
+	return m.frame.Render(m.nav.View() + "\n" + m.status.View())
 }
 
 type errMsg error
@@ -121,6 +145,28 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case errMsg:
 		m.err = msg
 		return m, nil
+	}
+
+	// Key messages ( user input )
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, m.keys.ViewTasks):
+			m.State = ViewTasks
+			return m, nil
+		case key.Matches(msg, m.keys.ViewProjects):
+			m.State = ViewProjects
+			return m, nil
+		case key.Matches(msg, m.keys.ViewContexts):
+			m.State = ViewContexts
+			return m, nil
+		case key.Matches(msg, m.keys.ViewTags):
+			m.State = ViewTags
+			return m, nil
+		case key.Matches(msg, m.keys.ViewHistory):
+			m.State = ViewHistory
+			return m, nil
+		}
 	}
 
 	return m, cmd
