@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"regexp"
@@ -173,24 +172,19 @@ func Projects() (projects map[string]tw.Project, err error) {
 		parts := strings.Split(project, ".")
 		p := root
 		name := ""
-		for i, v := range parts {
+	NEXT_PART:
+		for _, v := range parts {
 			name += v
-			log.Println("p.Children", p.Children)
 			for k := range p.Children {
-				log.Println("i, name, k, v, parts", i, name, k, v, parts)
 				if name == k {
 					p = p.Children[name]
-					log.Println("found:", name)
-					log.Println("next iter:", name)
-					continue
+					name += "."
+					continue NEXT_PART
 				}
 			}
-			log.Println("i, name, v, parts", i, name, v, parts)
-			log.Println("adding:", name)
 			p.Children[name] = tw.Project{Children: make(map[string]tw.Project)}
 			p = p.Children[name]
 			name += "."
-			log.Println("next iter:", name)
 		}
 	}
 	return root.Children, nil
