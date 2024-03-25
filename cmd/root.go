@@ -4,18 +4,22 @@ import (
 	"fmt"
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/manyids2/tasktea/components/app"
 	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "tasktea",
-	Short: "",
-	Long:  ``,
+	Short: "Minimal UI for Taskwarrior",
+	Long:  `Minimal UI for Taskwarrior based on taskwiki, implemented using bubbletea.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		tt := app.Model{}
 		tt.LoadRc()
-		fmt.Println(tt.Context, tt.Filters.Read, tt.Projects, tt.Active)
+		if _, err := tea.NewProgram(tt).Run(); err != nil {
+			fmt.Printf("Could not start program :(\n%v\n", err)
+			os.Exit(1)
+		}
 	},
 }
 

@@ -3,8 +3,13 @@ package app
 import (
 	"log"
 
+	tea "github.com/charmbracelet/bubbletea"
 	tw "github.com/manyids2/tasktea/task"
 	"github.com/manyids2/tasktea/task/actions"
+)
+
+type (
+	errMsg error
 )
 
 type Model struct {
@@ -18,7 +23,16 @@ type Model struct {
 	Projects map[string]tw.Project
 	Contexts map[string]tw.Filters
 
-	logpath string
+	Width  int
+	Height int
+
+	logpath  string
+	quitting bool
+	err      error
+}
+
+func (m Model) Init() tea.Cmd {
+	return nil
 }
 
 func (m *Model) LoadRc() {
@@ -30,8 +44,6 @@ func (m *Model) LoadRc() {
 	if err != nil {
 		log.Fatalln("Could not load taskrc", err)
 	}
-	log.Println("taskdata", m.taskdata)
-	log.Println("taskrc", m.taskrc)
 
 	// Load available contexts with filters from rc
 	m.Contexts = m.rc.Contexts
