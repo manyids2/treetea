@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"regexp"
@@ -160,14 +161,39 @@ func Context() (context string, read_filters string, write_filters string, err e
 // Projects Get all Projects
 //
 // `task _projects`
-func Projects() (projects []string, err error) {
+func Projects() (projects map[string]tw.Project, err error) {
 	out, err := exec.Command("task", "_projects").Output()
 	if err != nil {
-		return nil, err
+		return projects, err
 	}
 	lines := strings.Split(string(out), "\n")
-	projects = lines[:len(lines)-1]
-	return projects, nil
+
+	root := tw.Project{Children: make(map[string]tw.Project)}
+	for _, project := range lines[:len(lines)-1] {
+		parts := strings.Split(project, ".")
+		p := root
+		name := ""
+		for i, v := range parts {
+			name += v
+			log.Println("p.Children", p.Children)
+			for k := range p.Children {
+				log.Println("i, name, k, v, parts", i, name, k, v, parts)
+				if name == k {
+					p = p.Children[name]
+					log.Println("found:", name)
+					log.Println("next iter:", name)
+					continue
+				}
+			}
+			log.Println("i, name, v, parts", i, name, v, parts)
+			log.Println("adding:", name)
+			p.Children[name] = tw.Project{Children: make(map[string]tw.Project)}
+			p = p.Children[name]
+			name += "."
+			log.Println("next iter:", name)
+		}
+	}
+	return root.Children, nil
 }
 
 // Projects Get all Projects

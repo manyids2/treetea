@@ -15,7 +15,8 @@ type Model struct {
 	Context  string
 	Filters  tw.Filters
 	Active   []string
-	Projects []string
+	Projects map[string]tw.Project
+	Contexts map[string]tw.Filters
 
 	logpath string
 }
@@ -32,7 +33,10 @@ func (m *Model) LoadRc() {
 	log.Println("taskdata", m.taskdata)
 	log.Println("taskrc", m.taskrc)
 
-	// Check current context
+	// Load available contexts with filters from rc
+	m.Contexts = m.rc.Contexts
+
+	// Get current context
 	context, read_filters, write_filters, err := actions.Context()
 	if err != nil {
 		log.Fatalln("Could not retrieve context", err)
@@ -43,7 +47,7 @@ func (m *Model) LoadRc() {
 		Write: write_filters,
 	}
 
-	// Check projects
+	// Get projects as tree
 	m.Projects, err = actions.Projects()
 	if err != nil {
 		log.Fatalln("Could not retrieve projects", err)

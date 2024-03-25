@@ -8,8 +8,7 @@ import (
 )
 
 type Project struct {
-	Name     string
-	Children []string
+	Children map[string]Project
 }
 
 type Filters struct {
