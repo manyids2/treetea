@@ -69,16 +69,8 @@ report._reviewed.sort=reviewed+,modified+
 report._reviewed.filter=( reviewed.none: or reviewed.before:now-6days ) and ( +PENDING or +WAITING )
 
 # Contexts
-context.music.read=project:music -init -DELETED
-context.music.write=project:music
-context.research.read=project:research -init -DELETED
-context.research.write=project:research
-context.jobsearch.read=project:jobsearch -init -DELETED
-context.jobsearch.write=project:jobsearch
-context.health.read=project:health -init -DELETED
-context.health.write=project:health
-context.home.read=project:home -init -DELETED
-context.home.write=project:home
-context.financials.read=project:financials -init -DELETED
-context.financials.write=project:financials
-context=research
+context.aa.read=project:aa
+context.aa.write=project:aa
+context.bb.read=project:bb
+context.bb.write=project:bb
+context=bb

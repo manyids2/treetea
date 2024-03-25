@@ -16,6 +16,7 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		tt := app.Model{}
 		tt.LoadRc()
+		tt.LoadTasks()
 		if _, err := tea.NewProgram(tt).Run(); err != nil {
 			fmt.Printf("Could not start program :(\n%v\n", err)
 			os.Exit(1)

@@ -2,6 +2,7 @@ package app
 
 import (
 	"log"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	tw "github.com/manyids2/tasktea/task"
@@ -17,18 +18,20 @@ type Model struct {
 	taskrc   string
 	rc       tw.TaskRC
 
+	logpath  string
+	quitting bool
+	err      error
+
+	Width  int
+	Height int
+
 	Context  string
 	Filters  tw.Filters
 	Active   []string
 	Projects map[string]tw.Project
 	Contexts map[string]tw.Filters
 
-	Width  int
-	Height int
-
-	logpath  string
-	quitting bool
-	err      error
+	Tasks []tw.Task
 }
 
 func (m Model) Init() tea.Cmd {
@@ -70,4 +73,13 @@ func (m *Model) LoadRc() {
 	if err != nil {
 		log.Fatalln("Could not retrieve active", err)
 	}
+}
+
+func (m *Model) LoadTasks() {
+	filters := strings.Split(m.Filters.Read, " ")
+	tasks, err := actions.List(filters)
+	if err != nil {
+		log.Fatalln("Could not retrieve tasks", err)
+	}
+	m.Tasks = tasks
 }
