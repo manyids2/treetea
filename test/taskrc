@@ -1,0 +1,84 @@
+# [Created by task 2.5.1 2/19/2017 04:19:13]
+# Taskwarrior program configuration file.
+# For more documentation, see http://taskwarrior.org or try 'man task', 'man task-color',
+# 'man task-sync' or 'man taskrc'
+
+# Here is an example of entries that use the default, override and blank values
+#   variable=foo   -- By specifying a value, this overrides the default
+#   variable=      -- By specifying no value, this means no default
+#   #variable=foo  -- By commenting out the line, or deleting it, this uses the default
+
+# Use the command 'task show' to see all defaults and overrides
+include /usr/share/taskwarrior/solarized-dark-256.theme
+
+# Files
+data.location=~/.config/taskwarrior/data
+verbose=blank,footnote,label,new-uuid,affected,edit,special,project,sync,unwait
+
+# Basic config
+weekstart=monday
+default.command=ready
+tasksh.autoclear=true
+search.case.sensitive=no
+regex=on
+
+# List all projects with `task projects`, including those completed.
+list.all.projects=yes
+list.all.tags=yes
+
+report.bare.description=Only descriptions
+report.bare.columns=project,description.count
+report.bare.labels=Proj,Desc
+report.bare.sort=project+\/,entry+
+report.bare.filter=status:pending
+
+report.next.filter=status:pending -WAITING
+
+# Child tasks inherit their parent's urgency if that's higher.
+urgency.inherit=on
+
+# How urgent something is depends upon what's waiting on it.
+urgency.blocking.coefficient=0
+urgency.blocked.coefficient=0
+
+# More sensible priorities, plz.
+uda.priority.values = H,M,,L
+urgency.uda.priority.L.coefficient=0
+urgency.uda.priority..coefficient=1.8
+
+# Costly tasks are most important.
+urgency.user.tag.costly.coefficient=3.0
+
+# jobsearch is more important than non-jobsearch tasks.
+urgency.user.project.jobsearch.coefficient=1.0
+
+# Fun things are less important
+urgency.user.project.fun.coefficient=-1.0
+urgency.user.tag.fun.coefficient=-1.0
+
+# Our verbosity does not include the 2.6.x 'override' value, so I don't get warned of
+# custom overrides in my shell aliases and functions.
+# verbose=blank,header,footnote,label,new-id,affected,edit,special,project,sync,unwait,recur
+# context=srs
+news.version=2.6.0
+uda.reviewed.type=date
+uda.reviewed.label=Reviewed
+report._reviewed.description=Tasksh review report.  Adjust the filter to your needs.
+report._reviewed.columns=uuid
+report._reviewed.sort=reviewed+,modified+
+report._reviewed.filter=( reviewed.none: or reviewed.before:now-6days ) and ( +PENDING or +WAITING )
+
+# Contexts
+context.music.read=project:music -init -DELETED
+context.music.write=project:music
+context.research.read=project:research -init -DELETED
+context.research.write=project:research
+context.jobsearch.read=project:jobsearch -init -DELETED
+context.jobsearch.write=project:jobsearch
+context.health.read=project:health -init -DELETED
+context.health.write=project:health
+context.home.read=project:home -init -DELETED
+context.home.write=project:home
+context.financials.read=project:financials -init -DELETED
+context.financials.write=project:financials
+context=research

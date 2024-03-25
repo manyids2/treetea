@@ -12,7 +12,7 @@ type Project struct {
 	Children []string
 }
 
-type Context struct {
+type Filters struct {
 	Read  string
 	Write string
 }
@@ -38,7 +38,7 @@ type UDA struct {
 
 type TaskRC struct {
 	Projects map[string]Project
-	Contexts map[string]Context
+	Contexts map[string]Filters
 	Reports  map[string]Report
 	Urgencys map[string]Urgency
 	UDAs     map[string]UDA
@@ -111,22 +111,26 @@ func ExtractKey(key string, cfg map[string]string) (values map[string]map[string
 
 func LoadTaskRC(path string) (rc TaskRC, err error) {
 	cfg, err := ReadRc(path)
-	rc = TaskRC{}
+	if err != nil {
+		return rc, err
+	}
 
-	// Single key variables
-	rc.DataLocation = cfg["data.location"]
-	rc.DefaultCommand = cfg["default.command"]
-	rc.Weekstart = cfg["weekstart"]
-	rc.CaseSensitive = cfg["search.case.sensitive"]
-	rc.Regex = cfg["regex"]
-	rc.ListAllProjects = cfg["list.all.projects"]
-	rc.ListAllTags = cfg["list.all.tags"]
-	rc.Verbose = cfg["verbose"]
-	rc.TaskshAutoclear = cfg["tasksh.autoclear"]
-	rc.NewsVersion = cfg["news.version"]
+	// Initialize
+	rc = TaskRC{
+		DataLocation:    cfg["data.location"],
+		DefaultCommand:  cfg["default.command"],
+		Weekstart:       cfg["weekstart"],
+		CaseSensitive:   cfg["search.case.sensitive"],
+		Regex:           cfg["regex"],
+		ListAllProjects: cfg["list.all.projects"],
+		ListAllTags:     cfg["list.all.tags"],
+		Verbose:         cfg["verbose"],
+		TaskshAutoclear: cfg["tasksh.autoclear"],
+		NewsVersion:     cfg["news.version"],
+	}
 
 	// Contexts
-	rc.Contexts = map[string]Context{}
+	rc.Contexts = map[string]Filters{}
 	for k, v := range cfg {
 		if len(k) < 9 {
 			continue
@@ -134,7 +138,7 @@ func LoadTaskRC(path string) (rc TaskRC, err error) {
 		if k[:8] == "context." {
 			parts := strings.Split(k, ".")
 			if _, ok := rc.Contexts[parts[1]]; !ok {
-				rc.Contexts[parts[1]] = Context{}
+				rc.Contexts[parts[1]] = Filters{}
 			}
 			if c, ok := rc.Contexts[parts[1]]; ok {
 				if parts[2] == "read" {
@@ -174,23 +178,7 @@ func LoadTaskRC(path string) (rc TaskRC, err error) {
 				}
 				rc.Reports[parts[1]] = c
 			}
-
 		}
 	}
-
-	// for k, v := range rc.Contexts {
-	// 	fmt.Println(k)
-	// 	fmt.Println("  Read : ", v.Read)
-	// 	fmt.Println("  Write: ", v.Write)
-	// }
-	//
-	// for k, v := range rc.Reports {
-	// 	fmt.Println(k)
-	// 	fmt.Println("  Description : ", v.Description)
-	// 	fmt.Println("  Columns     : ", v.Columns)
-	// 	fmt.Println("  Labels      : ", v.Labels)
-	// 	fmt.Println("  Sort        : ", v.Sort)
-	// 	fmt.Println("  Filter      : ", v.Filter)
-	// }
 	return rc, err
 }
