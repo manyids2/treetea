@@ -2,7 +2,6 @@ package app
 
 import (
 	"log"
-	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	ly "github.com/manyids2/tasktea/components/layout"
@@ -23,16 +22,20 @@ type Model struct {
 	quitting bool
 	err      error
 
-	Width  int
-	Height int
-
-	Context  string
-	Filters  tw.Filters
-	Active   []string
-	Projects map[string]tw.Project
+	// From taskrc
 	Contexts map[string]tw.Filters
 
-	Tasks []tw.Task
+	// Querying task
+	Active   []string
+	Tags     []string
+	Projects map[string]tw.Project
+
+	// Initial context and filters
+	Context string
+	Filters tw.Filters
+
+	Width  int
+	Height int
 
 	layout ly.Model
 }
@@ -46,7 +49,7 @@ func New() (m Model) {
 		layout: ly.New(),
 	}
 	m.LoadRc()
-	m.LoadTasks()
+	m.layout.LoadTasks(m.Context, m.Filters)
 	return m
 }
 
@@ -80,18 +83,15 @@ func (m *Model) LoadRc() {
 		log.Fatalln("Could not retrieve projects", err)
 	}
 
+	// Get tags as list
+	m.Tags, err = xn.Tags()
+	if err != nil {
+		log.Fatalln("Could not retrieve projects", err)
+	}
+
 	// Check active
 	m.Active, err = xn.Active()
 	if err != nil {
 		log.Fatalln("Could not retrieve active", err)
 	}
-}
-
-func (m *Model) LoadTasks() {
-	filters := strings.Split(m.Filters.Read, " ")
-	tasks, err := xn.List(filters)
-	if err != nil {
-		log.Fatalln("Could not retrieve tasks", err)
-	}
-	m.Tasks = tasks
 }

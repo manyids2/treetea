@@ -144,6 +144,9 @@ func Context() (context string, read_filters string, write_filters string, err e
 
 	r := regexp.MustCompile(`Context '(?P<Context>[a-zA-Z]+)' with`)
 	match := r.FindStringSubmatch(lines[0])
+	if len(match) < 2 {
+		return context, "", "", err
+	}
 	context = match[1]
 
 	r = regexp.MustCompile(`\* read filter: '(?P<ReadFilter>.*)'`)
@@ -188,6 +191,18 @@ func Projects() (projects map[string]tw.Project, err error) {
 		}
 	}
 	return root.Children, nil
+}
+
+// Projects Get all Projects
+//
+// `task _tags`
+func Tags() (tags []string, err error) {
+	out, err := exec.Command("task", "_tags").Output()
+	if err != nil {
+		return nil, err
+	}
+	lines := strings.Split(string(out), "\n")
+	return lines[:len(lines)-1], nil
 }
 
 // Projects Get all Projects
