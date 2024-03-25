@@ -2,6 +2,7 @@ package layout
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	lg "github.com/charmbracelet/lipgloss"
 
 	nv "github.com/manyids2/tasktea/components/navbar"
 	st "github.com/manyids2/tasktea/components/statusbar"
@@ -15,7 +16,7 @@ const (
 )
 
 type Model struct {
-  // Essential
+	// Essential
 	Width  int
 	Height int
 	State  ViewState
@@ -31,6 +32,7 @@ type Model struct {
 	tags     tr.Model
 	history  tr.Model
 
+	// Error handling
 	ready bool
 	err   error
 }
@@ -48,16 +50,28 @@ func (m Model) Init() tea.Cmd {
 	return nil
 }
 
+func (m *Model) Layout() {
+	m.nav.Width = m.Width
+	m.nav.Height = 3
+
+	m.status.Width = m.Width
+	m.status.Height = 2
+}
+
 func (m Model) View() string {
+	var style = lg.NewStyle().
+		Background(lg.Color("#dddddd")).
+		Height(m.Height).
+		Width(m.Width)
 	if !m.ready {
-		return ""
+		return "not ready"
 	}
-	return m.nav.View() + "\n" + m.status.View()
+	return style.Render(m.nav.View() + "\n" + m.status.View())
 }
 
 type errMsg error
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	// Non-key messages ( event listeners )
@@ -65,7 +79,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.Width = msg.Width
 		m.Height = msg.Height
+		m.Layout()
 		m.ready = true
+		return m, nil
 
 	case errMsg:
 		m.err = msg

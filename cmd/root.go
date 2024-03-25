@@ -14,9 +14,7 @@ var rootCmd = &cobra.Command{
 	Short: "Minimal UI for Taskwarrior",
 	Long:  `Minimal UI for Taskwarrior based on taskwiki, implemented using bubbletea.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		tt := app.Model{}
-		tt.LoadRc()
-		tt.LoadTasks()
+		tt := app.New()
 		if _, err := tea.NewProgram(tt).Run(); err != nil {
 			fmt.Printf("Could not start program :(\n%v\n", err)
 			os.Exit(1)

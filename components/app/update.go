@@ -28,6 +28,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	// Defer to layout
+	m.layout, cmd = m.layout.Update(msg)
 	return m, cmd
 }
 
