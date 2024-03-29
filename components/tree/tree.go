@@ -245,6 +245,17 @@ func (m Model) View() string {
 	return m.frame.Render(content)
 }
 
+type AcceptMsg []string
+
+func accept(m Model) tea.Cmd {
+	return func() tea.Msg {
+		if len(m.Selected) == 0 {
+			return AcceptMsg(m.Order[m.Current : m.Current+1])
+		}
+		return AcceptMsg(m.Selected)
+	}
+}
+
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
@@ -266,6 +277,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case key.Matches(msg, keys.Next):
 			m.pages.NextPage()
 			m.Current = m.pages.PerPage * m.pages.Page
+		// Enter
+		case key.Matches(msg, keys.Accept):
+			return m, accept(m)
 		}
 	}
 	return m, cmd

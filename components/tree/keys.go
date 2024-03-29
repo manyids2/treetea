@@ -10,6 +10,7 @@ type keyMap struct {
 	Prev   key.Binding
 	Next   key.Binding
 	Filter key.Binding
+	Accept key.Binding
 }
 
 var keys = keyMap{
@@ -40,5 +41,9 @@ var keys = keyMap{
 	Filter: key.NewBinding(
 		key.WithKeys("/", "f"),
 		key.WithHelp("/", "filter"),
+	),
+	Accept: key.NewBinding(
+		key.WithKeys("enter"),
+		key.WithHelp("enter", "accept"),
 	),
 }

@@ -55,11 +55,7 @@ func New() (m Model) {
 	m.layout.LoadTasks(m.Context, m.Filters)
 
 	// Contexts
-	contexts := []string{}
-	for k := range m.Contexts {
-		contexts = append(contexts, k)
-	}
-	m.layout.LoadContexts(contexts)
+	m.layout.LoadContexts(m.Contexts)
 
 	// Projects
 	projects := []string{}

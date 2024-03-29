@@ -105,10 +105,10 @@ func (m *Model) LoadTasks(context string, filters tw.Filters) {
 	m.tree = m.tasks
 }
 
-func (m *Model) LoadContexts(contexts []string) {
+func (m *Model) LoadContexts(contexts map[string]tw.Filters) {
 	items := tr.Items{}
-	for _, v := range contexts {
-		items = append(items, tw.StringItem(v))
+	for k, v := range contexts {
+		items = append(items, tw.ContextItem{Name: k, Filters: v})
 	}
 	m.contexts.LoadList(items)
 }
@@ -177,6 +177,18 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.ready = true
 		return m, nil
 
+	case tr.AcceptMsg:
+		switch m.State {
+		case ViewContexts:
+			context := msg[0]
+			m.Context = context
+			_, filters := m.contexts.Items.Get(context)
+			m.Filters = tw.Filters{Read: filters.Desc("read"), Write: filters.Desc("write")}
+			m.LoadTasks(m.Context, m.Filters)
+			// NOTE: Not changing tw context
+			// xn.SetContext(context)
+		}
+
 	case errMsg:
 		m.err = msg
 		return m, nil
@@ -191,21 +203,21 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.State = ViewTasks
 			m.tree = m.tasks
 			return m, nil
-		case key.Matches(msg, m.keys.ViewProjects):
-			m.State = ViewProjects
-			m.tree = m.projects
-			return m, nil
 		case key.Matches(msg, m.keys.ViewContexts):
 			m.State = ViewContexts
 			m.tree = m.contexts
 			return m, nil
-		case key.Matches(msg, m.keys.ViewTags):
-			m.State = ViewTags
-			m.tree = m.tags
-			return m, nil
 		case key.Matches(msg, m.keys.ViewHistory):
 			m.State = ViewHistory
 			m.tree = m.history
+			return m, nil
+		case key.Matches(msg, m.keys.ViewProjects):
+			m.State = ViewProjects
+			m.tree = m.projects
+			return m, nil
+		case key.Matches(msg, m.keys.ViewTags):
+			m.State = ViewTags
+			m.tree = m.tags
 			return m, nil
 		}
 	}

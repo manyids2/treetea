@@ -113,3 +113,28 @@ func (t StringItem) Desc(name string) string {
 	}
 	return string(t)
 }
+
+type ContextItem struct {
+	Name    string
+	Filters Filters
+}
+
+func (t ContextItem) Key() string {
+	return t.Name
+}
+
+func (t ContextItem) Children() []string {
+	return []string{}
+}
+
+func (t ContextItem) Desc(name string) string {
+	switch name {
+	case "name":
+		return t.Name
+	case "read":
+		return t.Filters.Read
+	case "write":
+		return t.Filters.Write
+	}
+	return t.Name
+}
