@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/paginator"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	lg "github.com/charmbracelet/lipgloss"
 )
@@ -68,6 +69,10 @@ type Model struct {
 	// For statusbar
 	Singular string
 	Plural   string
+
+	// Input
+	Editing bool
+	edit    textinput.Model
 }
 
 func (m *Model) SetFrame(width, height int) {
@@ -95,12 +100,20 @@ func New(name, singular, plural string) (m Model) {
 		Height:   20,
 		Current:  -1,
 		pages:    paginator.New(),
+		edit:     textinput.New(),
 	}
+
 	m.SetFrame(m.Width, m.Height)
+	m.pages.PerPage = m.Height
+
 	m.pages.Type = paginator.Dots
 	m.pages.ActiveDot = IconActivePage
 	m.pages.InactiveDot = IconInactivePage
-	m.pages.PerPage = m.Height
+
+	m.edit.Prompt = ""
+	m.edit.Placeholder = ""
+	m.edit.SetValue("")
+
 	return m
 }
 
@@ -277,7 +290,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case key.Matches(msg, keys.Next):
 			m.pages.NextPage()
 			m.Current = m.pages.PerPage * m.pages.Page
-		// Enter
+		case key.Matches(msg, keys.Cancel):
+			return m, nil
 		case key.Matches(msg, keys.Accept):
 			return m, accept(m)
 		}

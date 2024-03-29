@@ -129,6 +129,8 @@ func (t ContextItem) Children() []string {
 
 func (t ContextItem) Desc(name string) string {
 	switch name {
+	case "icon":
+		return MARKERS["pending"]
 	case "name":
 		return t.Name
 	case "read":

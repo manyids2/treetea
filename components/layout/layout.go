@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	lg "github.com/charmbracelet/lipgloss"
 
@@ -22,6 +23,8 @@ const (
 	ViewProjects
 	ViewTags
 	ViewHistory
+	ViewFilter
+	ViewSave
 )
 
 type Model struct {
@@ -45,6 +48,10 @@ type Model struct {
 	// Current tree
 	tree tr.Model
 
+	// Filter
+	filter textinput.Model
+	save   textinput.Model
+
 	// Helpers
 	frame lg.Style
 	keys  keyMap
@@ -66,8 +73,18 @@ func New() (m Model) {
 		projects: tr.New("Projects", "Project", "Projects"),
 		tags:     tr.New("Tags", "Tag", "Tags"),
 		history:  tr.New("History", "Item", "Items"),
+
+		filter: textinput.New(),
+		save:   textinput.New(),
 	}
 	m.tree = m.tasks
+	m.filter.Prompt = ""
+	m.filter.Placeholder = ""
+	m.filter.SetValue("")
+
+	m.save.Prompt = ""
+	m.save.Placeholder = ""
+	m.save.SetValue("")
 	return m
 }
 
@@ -147,8 +164,14 @@ func (m Model) viewNav() string {
 	desc := ""
 
 	// Change only in case of tasks
-	if m.State == ViewTasks {
+	switch m.State {
+	case ViewTasks:
 		name = m.Context
+		desc = m.Filters.Read
+	case ViewFilter:
+		desc = m.filter.View()
+	case ViewSave:
+		name = m.save.View()
 		desc = m.Filters.Read
 	}
 	return fmt.Sprintf("| %s | %s\n", name, desc)
@@ -166,6 +189,8 @@ func (m Model) View() string {
 }
 
 type errMsg error
+type CloseMsg string
+type ReloadRcMsg string
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
@@ -194,34 +219,86 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Key messages ( user input )
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch {
-		// Change view
-		case key.Matches(msg, m.keys.ViewTasks):
-			m.State = ViewTasks
-			m.tree = m.tasks
-			return m, nil
-		case key.Matches(msg, m.keys.ViewContexts):
-			m.State = ViewContexts
-			m.tree = m.contexts
-			return m, nil
-		case key.Matches(msg, m.keys.ViewHistory):
-			m.State = ViewHistory
-			m.tree = m.history
-			return m, nil
-		case key.Matches(msg, m.keys.ViewProjects):
-			m.State = ViewProjects
-			m.tree = m.projects
-			return m, nil
-		case key.Matches(msg, m.keys.ViewTags):
-			m.State = ViewTags
-			m.tree = m.tags
-			return m, nil
+	switch m.State {
+
+	case ViewFilter:
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch {
+			case key.Matches(msg, m.keys.Cancel):
+				m.filter.SetValue(m.Filters.Read)
+				m.filter.Placeholder = m.Filters.Read
+				m.State = ViewTasks
+			case key.Matches(msg, m.keys.Accept):
+				m.Filters.Read = m.filter.Value()
+				m.State = ViewTasks
+				m.LoadTasks(m.Context, m.Filters)
+			}
 		}
+		m.filter, cmd = m.filter.Update(msg)
+
+	case ViewSave:
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch {
+			case key.Matches(msg, m.keys.Cancel):
+				m.State = ViewTasks
+			case key.Matches(msg, m.keys.Accept):
+				xn.SaveContext(m.save.Value(), m.Filters.Read)
+				m.Context = m.save.Value()
+				m.State = ViewTasks
+				return m, func() tea.Msg { return ReloadRcMsg("") }
+			}
+		}
+		m.save, cmd = m.save.Update(msg)
+
+	default:
+		// Key messages ( user input )
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch {
+			// Close
+			case key.Matches(msg, m.keys.Close):
+				return m, func() tea.Msg {
+					return CloseMsg("")
+				}
+			// Change view
+			case key.Matches(msg, m.keys.ViewTasks):
+				m.State = ViewTasks
+				m.tree = m.tasks
+				return m, nil
+			case key.Matches(msg, m.keys.ViewContexts):
+				m.State = ViewContexts
+				m.tree = m.contexts
+				return m, nil
+			case key.Matches(msg, m.keys.ViewHistory):
+				m.State = ViewHistory
+				m.tree = m.history
+				return m, nil
+			case key.Matches(msg, m.keys.ViewProjects):
+				m.State = ViewProjects
+				m.tree = m.projects
+				return m, nil
+			case key.Matches(msg, m.keys.ViewTags):
+				m.State = ViewTags
+				m.tree = m.tags
+				return m, nil
+			case key.Matches(msg, m.keys.Filter):
+				m.State = ViewFilter
+				m.filter.Placeholder = m.Filters.Read + " "
+				m.filter.SetValue(m.Filters.Read + " ")
+				m.filter.Focus()
+				return m, nil
+			case key.Matches(msg, m.keys.Save):
+				m.State = ViewSave
+				m.save.Placeholder = m.Context
+				m.save.SetValue(m.Context)
+				m.save.Focus()
+				return m, nil
+			}
+		}
+		m.tree, cmd = m.tree.Update(msg) // Delegate to current tree
 	}
 
-	m.tree, cmd = m.tree.Update(msg) // Delegate to current tree
 	return m, cmd
 }

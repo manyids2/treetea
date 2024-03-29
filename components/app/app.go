@@ -50,6 +50,7 @@ func New() (m Model) {
 		layout: ly.New(),
 	}
 	m.LoadRc()
+	m.SetCurrentContext()
 
 	// Tasks
 	m.layout.LoadTasks(m.Context, m.Filters)
@@ -77,6 +78,18 @@ func New() (m Model) {
 	return m
 }
 
+func (m *Model) SetCurrentContext() {
+	context, read_filters, write_filters, err := xn.Context()
+	if err != nil {
+		log.Fatalln("Could not retrieve context", err)
+	}
+	m.Context = context
+	m.Filters = tw.Filters{
+		Read:  read_filters,
+		Write: write_filters,
+	}
+}
+
 func (m *Model) LoadRc() {
 	var err error
 
@@ -89,17 +102,6 @@ func (m *Model) LoadRc() {
 
 	// Load available contexts with filters from rc
 	m.Contexts = m.rc.Contexts
-
-	// Get current context
-	context, read_filters, write_filters, err := xn.Context()
-	if err != nil {
-		log.Fatalln("Could not retrieve context", err)
-	}
-	m.Context = context
-	m.Filters = tw.Filters{
-		Read:  read_filters,
-		Write: write_filters,
-	}
 
 	// Get projects as tree
 	m.Projects, err = xn.Projects()

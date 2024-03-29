@@ -11,6 +11,7 @@ type keyMap struct {
 	Next   key.Binding
 	Filter key.Binding
 	Accept key.Binding
+	Cancel key.Binding
 }
 
 var keys = keyMap{
@@ -38,12 +39,12 @@ var keys = keyMap{
 		key.WithKeys("right", "l"),
 		key.WithHelp("→/l", "next page"),
 	),
-	Filter: key.NewBinding(
-		key.WithKeys("/", "f"),
-		key.WithHelp("/", "filter"),
-	),
 	Accept: key.NewBinding(
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "accept"),
+	),
+	Cancel: key.NewBinding(
+		key.WithKeys("esc"),
+		key.WithHelp("esc", "cancel"),
 	),
 }

@@ -1,8 +1,8 @@
 package app
 
 import (
-	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/manyids2/tasktea/components/layout"
 )
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -17,16 +17,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case errMsg:
 		m.err = msg
 		return m, nil
-	}
 
-	// Key messages ( user input )
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, keys.Quit):
-			m.quitting = true
-			return m, tea.Quit
-		}
+	case layout.ReloadRcMsg:
+		// Refresh contexts
+		m.LoadRc()
+		m.layout.LoadContexts(m.Contexts)
+		return m, nil
+
+	case layout.CloseMsg:
+		m.quitting = true
+		return m, tea.Quit
 	}
 
 	// Defer to layout

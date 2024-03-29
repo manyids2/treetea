@@ -205,11 +205,21 @@ func Tags() (tags []string, err error) {
 	return lines[:len(lines)-1], nil
 }
 
-// Projects Get all Projects
+// SetContext Set current context in taskwarrior
 //
 // `task context [context]`
 func SetContext(context string) (err error) {
 	_, err = exec.Command("task", "context", context).Output()
+	return err
+}
+
+// SaveContext Save context
+//
+// `task context [context]`
+func SaveContext(name string, read_filter string) (err error) {
+	args := []string{"context", "define", "rc.confirmation=no", name}
+	args = append(args, strings.Split(read_filter, " ")...)
+	_, err = exec.Command("task", args...).Output()
 	return err
 }
 
