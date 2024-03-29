@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -21,8 +22,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Key messages ( user input )
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEnter, tea.KeyCtrlC, tea.KeyEsc:
+		switch {
+		case key.Matches(msg, keys.Quit):
 			m.quitting = true
 			return m, tea.Quit
 		}

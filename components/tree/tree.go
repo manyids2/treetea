@@ -4,10 +4,25 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/paginator"
 	tea "github.com/charmbracelet/bubbletea"
 	lg "github.com/charmbracelet/lipgloss"
 )
+
+func max(a, b int) int {
+	if a >= b {
+		return a
+	}
+	return b
+}
+
+func min(a, b int) int {
+	if b >= a {
+		return a
+	}
+	return b
+}
 
 // Assumed item interface
 type Item interface {
@@ -220,6 +235,28 @@ func (m Model) View() string {
 	return m.frame.Render(content)
 }
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	return m, nil
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		minIdx, maxIdx := m.pages.GetSliceBounds(len(m.Items))
+		switch {
+		// Navigation
+		case key.Matches(msg, keys.Up):
+			m.Current = max(m.Current-1, minIdx)
+		case key.Matches(msg, keys.Down):
+			m.Current = min(m.Current+1, maxIdx-1)
+		case key.Matches(msg, keys.Top):
+			m.Current = minIdx
+		case key.Matches(msg, keys.Bottom):
+			m.Current = maxIdx - 1
+		case key.Matches(msg, keys.Prev):
+			m.pages.PrevPage()
+			m.Current = m.pages.PerPage * m.pages.Page
+		case key.Matches(msg, keys.Next):
+			m.pages.NextPage()
+			m.Current = m.pages.PerPage * m.pages.Page
+		}
+	}
+	return m, cmd
 }

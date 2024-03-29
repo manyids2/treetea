@@ -42,6 +42,9 @@ type Model struct {
 	tags     tr.Model
 	history  tr.Model
 
+	// Current tree
+	tree tr.Model
+
 	// Helpers
 	frame lg.Style
 	keys  keyMap
@@ -64,6 +67,7 @@ func New() (m Model) {
 		tags:     tr.New("Tags", "Tag", "Tags"),
 		history:  tr.New("History", "Item", "Items"),
 	}
+	m.tree = m.tasks
 	return m
 }
 
@@ -98,6 +102,7 @@ func (m *Model) LoadTasks(context string, filters tw.Filters) {
 
 	// Update UI
 	m.State = ViewTasks
+	m.tree = m.tasks
 }
 
 func (m *Model) LoadContexts(contexts []string) {
@@ -137,8 +142,8 @@ func (m *Model) SetFrame(width, height int) {
 	m.frame = lg.NewStyle().Height(height).Width(width)
 }
 
-func (m Model) viewNav(tree tr.Model) string {
-	name := tree.Name
+func (m Model) viewNav() string {
+	name := m.tree.Name
 	desc := ""
 
 	// Change only in case of tasks
@@ -154,24 +159,10 @@ func (m Model) View() string {
 		return "not ready"
 	}
 
-	var tree tr.Model
-	switch m.State {
-	case ViewTasks:
-		tree = m.tasks
-	case ViewContexts:
-		tree = m.contexts
-	case ViewProjects:
-		tree = m.projects
-	case ViewTags:
-		tree = m.tags
-	case ViewHistory:
-		tree = m.history
-	}
-
 	return m.frame.Render("\n" +
-		m.viewNav(tree) +
+		m.viewNav() +
 		"\n" +
-		tree.View())
+		m.tree.View())
 }
 
 type errMsg error
@@ -195,23 +186,30 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
+		// Change view
 		case key.Matches(msg, m.keys.ViewTasks):
 			m.State = ViewTasks
+			m.tree = m.tasks
 			return m, nil
 		case key.Matches(msg, m.keys.ViewProjects):
 			m.State = ViewProjects
+			m.tree = m.projects
 			return m, nil
 		case key.Matches(msg, m.keys.ViewContexts):
 			m.State = ViewContexts
+			m.tree = m.contexts
 			return m, nil
 		case key.Matches(msg, m.keys.ViewTags):
 			m.State = ViewTags
+			m.tree = m.tags
 			return m, nil
 		case key.Matches(msg, m.keys.ViewHistory):
 			m.State = ViewHistory
+			m.tree = m.history
 			return m, nil
 		}
 	}
 
+	m.tree, cmd = m.tree.Update(msg) // Delegate to current tree
 	return m, cmd
 }
