@@ -9,8 +9,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	lg "github.com/charmbracelet/lipgloss"
 
-	nv "github.com/manyids2/tasktea/components/navbar"
-	st "github.com/manyids2/tasktea/components/statusbar"
 	tr "github.com/manyids2/tasktea/components/tree"
 	tw "github.com/manyids2/tasktea/task"
 	xn "github.com/manyids2/tasktea/task/actions"
@@ -30,8 +28,6 @@ type Model struct {
 	// Essential
 	Width  int
 	Height int
-	frame  lg.Style
-	keys   keyMap
 
 	// State of layout
 	State   ViewState
@@ -39,16 +35,16 @@ type Model struct {
 	Filters tw.Filters
 	Tasks   []tw.Task
 
-	// Information
-	nav    nv.Model
-	status st.Model
-
 	// Trees
 	tasks    tr.Model
 	contexts tr.Model
 	projects tr.Model
 	tags     tr.Model
 	history  tr.Model
+
+	// Helpers
+	frame lg.Style
+	keys  keyMap
 
 	// Error handling
 	ready bool
@@ -60,15 +56,13 @@ func New() (m Model) {
 		Width:  80,
 		Height: 24,
 		State:  ViewTasks,
-		nav:    nv.New(),
-		status: st.New(),
 		keys:   keys,
 
-		tasks:    tr.New(),
-		contexts: tr.New(),
-		projects: tr.New(),
-		tags:     tr.New(),
-		history:  tr.New(),
+		tasks:    tr.New("Tasks", "Tasks", "Tasks"),
+		contexts: tr.New("Contexts", "Context", "Contexts"),
+		projects: tr.New("Projects", "Project", "Projects"),
+		tags:     tr.New("Tags", "Tag", "Tags"),
+		history:  tr.New("History", "Item", "Items"),
 	}
 	return m
 }
@@ -104,9 +98,6 @@ func (m *Model) LoadTasks(context string, filters tw.Filters) {
 
 	// Update UI
 	m.State = ViewTasks
-	m.nav.Title = m.Context
-	m.nav.Description = m.Filters.Read
-	m.status.Message = fmt.Sprintf("%d Tasks", len(m.Tasks))
 }
 
 func (m *Model) LoadContexts(contexts []string) {
@@ -141,47 +132,46 @@ func (m *Model) LoadHistory(history []string) {
 	m.history.LoadList(items)
 }
 
-func (m *Model) Layout() {
-	m.nav.Width = m.Width
-	m.nav.Height = 2
-
-	m.status.Width = m.Width
-	m.status.Height = 2
-}
-
 func (m *Model) SetFrame(width, height int) {
 	m.Width, m.Height = width, height
 	m.frame = lg.NewStyle().Height(height).Width(width)
+}
+
+func (m Model) viewNav(tree tr.Model) string {
+	name := tree.Name
+	desc := ""
+
+	// Change only in case of tasks
+	if m.State == ViewTasks {
+		name = m.Context
+		desc = m.Filters.Read
+	}
+	return fmt.Sprintf("| %s | %s\n", name, desc)
 }
 
 func (m Model) View() string {
 	if !m.ready {
 		return "not ready"
 	}
+
 	var tree tr.Model
 	switch m.State {
 	case ViewTasks:
-		m.nav.Title = m.Context
 		tree = m.tasks
 	case ViewContexts:
-		m.nav.Title = "Contexts"
 		tree = m.contexts
 	case ViewProjects:
-		m.nav.Title = "Projects"
 		tree = m.projects
 	case ViewTags:
-		m.nav.Title = "Tags"
 		tree = m.tags
 	case ViewHistory:
-		m.nav.Title = "History"
 		tree = m.history
 	}
+
 	return m.frame.Render("\n" +
-		m.nav.View() +
+		m.viewNav(tree) +
 		"\n" +
-		tree.View() +
-		"\n" +
-		m.status.View())
+		tree.View())
 }
 
 type errMsg error
@@ -193,8 +183,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.Width = msg.Width
-		// m.Height = msg.Height // Dont change height for now
-		m.Layout()
 		m.ready = true
 		return m, nil
 
@@ -209,23 +197,18 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.keys.ViewTasks):
 			m.State = ViewTasks
-			m.status.Message = fmt.Sprintf("%d Tasks", len(m.Tasks))
 			return m, nil
 		case key.Matches(msg, m.keys.ViewProjects):
 			m.State = ViewProjects
-			m.status.Message = fmt.Sprintf("%d Projects", len(m.projects.Items))
 			return m, nil
 		case key.Matches(msg, m.keys.ViewContexts):
 			m.State = ViewContexts
-			m.status.Message = fmt.Sprintf("%d Contexts", len(m.contexts.Items))
 			return m, nil
 		case key.Matches(msg, m.keys.ViewTags):
 			m.State = ViewTags
-			m.status.Message = fmt.Sprintf("%d Tags", len(m.tags.Items))
 			return m, nil
 		case key.Matches(msg, m.keys.ViewHistory):
 			m.State = ViewHistory
-			m.status.Message = fmt.Sprintf("%d History items", len(m.history.Items))
 			return m, nil
 		}
 	}

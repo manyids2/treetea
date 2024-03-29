@@ -30,6 +30,7 @@ func (t Items) Get(key string) (i int, v Item) {
 }
 
 type Model struct {
+	Name   string
 	Width  int
 	Height int
 
@@ -48,6 +49,10 @@ type Model struct {
 	pages paginator.Model
 	frame lg.Style
 	err   error
+
+	// For statusbar
+	Singular string
+	Plural   string
 }
 
 func (m *Model) SetFrame(width, height int) {
@@ -60,8 +65,11 @@ const (
 	IconInactivePage = "🬋🬋🬋"
 )
 
-func New() (m Model) {
+func New(name, singular, plural string) (m Model) {
 	m = Model{
+		Name:     name,
+		Singular: singular,
+		Plural:   plural,
 		Items:    Items{},
 		Parents:  map[string]string{},
 		Levels:   map[string]int{},
@@ -174,11 +182,6 @@ func (m Model) View() string {
 	content := ""
 	minIdx, maxIdx := m.pages.GetSliceBounds(len(m.Items))
 
-	// No items
-	if maxIdx == minIdx {
-		return m.frame.Render(content)
-	}
-
 	// Render tree
 	for _, id := range m.Order[minIdx:maxIdx] {
 		// Get data
@@ -187,6 +190,32 @@ func (m Model) View() string {
 		indent := strings.Repeat("  ", m.Levels[id])
 		content += fmt.Sprintf("%s%s\n", indent, text)
 	}
+
+	// Pad height
+	// TODO: Use frame instead
+	for i := maxIdx - minIdx; i < m.pages.PerPage; i++ {
+		content += "\n"
+	}
+
+	// Render status
+	content += "\n"
+	status := ""
+	if len(m.Items) == 0 {
+		status = fmt.Sprintf("No %s found", m.Plural)
+	} else if len(m.Items) == 1 {
+		status = fmt.Sprintf("%d %s", len(m.Items), m.Singular)
+	} else {
+		status = fmt.Sprintf("%d %s", len(m.Items), m.Plural)
+	}
+	content += status
+
+	// Render pages
+	if m.pages.TotalPages > 1 {
+		pages := fmt.Sprintf("%d / %d  %s", m.pages.Page+1, m.pages.TotalPages, m.pages.View())
+		padding := strings.Repeat(" ", m.Width-len([]rune(pages))-len([]rune(status)))
+		content += fmt.Sprintf("%s%s", padding, pages)
+	}
+	content += "\n"
 
 	return m.frame.Render(content)
 }
