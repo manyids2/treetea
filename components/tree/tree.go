@@ -193,17 +193,27 @@ func (m *Model) LoadList(items Items) {
 	m.Children = m.Order
 }
 
+func (m Model) viewItem(id string) string {
+	_, n := m.Items.Get(id)
+	style := lg.NewStyle()
+	current := m.Order[m.Current] == id
+	if current {
+		style = style.Italic(true)
+	}
+
+	text := style.Render(fmt.Sprintf("%s %s", n.Desc("icon"), n.Desc("description")))
+	indent := strings.Repeat("  ", m.Levels[id])
+
+	return fmt.Sprintf("%s%s\n", indent, text)
+}
+
 func (m Model) View() string {
 	content := ""
 	minIdx, maxIdx := m.pages.GetSliceBounds(len(m.Items))
 
 	// Render tree
 	for _, id := range m.Order[minIdx:maxIdx] {
-		// Get data
-		_, n := m.Items.Get(id)
-		text := fmt.Sprintf("%s", n.Desc("description"))
-		indent := strings.Repeat("  ", m.Levels[id])
-		content += fmt.Sprintf("%s%s\n", indent, text)
+		content += m.viewItem(id)
 	}
 
 	// Pad height

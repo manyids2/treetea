@@ -7,6 +7,15 @@ import (
 	"time"
 )
 
+var MARKERS = map[string]string{
+	"pending":   "󰝦 ",
+	"deleted":   "󰩺 ",
+	"completed": " ",
+	"waiting":   "󰔛 ",
+	"recurring": "󰑐 ",
+	"default":   "󰝦 ",
+}
+
 // Datetime format of Taskwarrior
 type ISO8601 time.Time
 
@@ -80,6 +89,10 @@ func (t Task) Desc(name string) string {
 		return t.Project
 	case "description":
 		return t.Description
+	case "status":
+		return t.Status
+	case "icon":
+		return MARKERS[t.Status]
 	}
 	return ""
 }
@@ -95,5 +108,8 @@ func (t StringItem) Children() []string {
 }
 
 func (t StringItem) Desc(name string) string {
+	if name == "icon" {
+		return MARKERS["pending"]
+	}
 	return string(t)
 }
