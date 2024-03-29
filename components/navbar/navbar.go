@@ -18,7 +18,7 @@ type Model struct {
 func New() (m Model) {
 	m = Model{
 		Width:  80,
-		Height: 3,
+		Height: 2,
 	}
 	m.SetFrame(m.Width, m.Height)
 	return m
@@ -34,7 +34,7 @@ func (m *Model) SetFrame(width, height int) {
 }
 
 func (m Model) View() string {
-	return m.frame.Render(fmt.Sprintf("\n| %s | %s", m.Title, m.Description))
+	return m.frame.Render(fmt.Sprintf("| %s | %s\n", m.Title, m.Description))
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

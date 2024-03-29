@@ -63,6 +63,12 @@ func New() (m Model) {
 		nav:    nv.New(),
 		status: st.New(),
 		keys:   keys,
+
+		tasks:    tr.New(),
+		contexts: tr.New(),
+		projects: tr.New(),
+		tags:     tr.New(),
+		history:  tr.New(),
 	}
 	return m
 }
@@ -89,6 +95,13 @@ func (m *Model) LoadTasks(context string, filters tw.Filters) {
 	}
 	m.Tasks = tasks
 
+	// Put tasks into items: NOTE: How to not copy???
+	items := tr.Items{}
+	for _, v := range m.Tasks {
+		items = append(items, v)
+	}
+	m.tasks.LoadTree(items)
+
 	// Update UI
 	m.State = ViewTasks
 	m.nav.Title = m.Context
@@ -96,9 +109,41 @@ func (m *Model) LoadTasks(context string, filters tw.Filters) {
 	m.status.Message = fmt.Sprintf("%d Tasks", len(m.Tasks))
 }
 
+func (m *Model) LoadContexts(contexts []string) {
+	items := tr.Items{}
+	for _, v := range contexts {
+		items = append(items, tw.StringItem(v))
+	}
+	m.contexts.LoadList(items)
+}
+
+func (m *Model) LoadProjects(projects []string) {
+	items := tr.Items{}
+	for _, v := range projects {
+		items = append(items, tw.StringItem(v))
+	}
+	m.projects.LoadList(items)
+}
+
+func (m *Model) LoadTags(tags []string) {
+	items := tr.Items{}
+	for _, v := range tags {
+		items = append(items, tw.StringItem(v))
+	}
+	m.tags.LoadList(items)
+}
+
+func (m *Model) LoadHistory(history []string) {
+	items := tr.Items{}
+	for _, v := range history {
+		items = append(items, tw.StringItem(v))
+	}
+	m.history.LoadList(items)
+}
+
 func (m *Model) Layout() {
 	m.nav.Width = m.Width
-	m.nav.Height = 3
+	m.nav.Height = 2
 
 	m.status.Width = m.Width
 	m.status.Height = 2
@@ -113,19 +158,30 @@ func (m Model) View() string {
 	if !m.ready {
 		return "not ready"
 	}
+	var tree tr.Model
 	switch m.State {
 	case ViewTasks:
 		m.nav.Title = m.Context
+		tree = m.tasks
 	case ViewContexts:
 		m.nav.Title = "Contexts"
+		tree = m.contexts
 	case ViewProjects:
 		m.nav.Title = "Projects"
+		tree = m.projects
 	case ViewTags:
 		m.nav.Title = "Tags"
+		tree = m.tags
 	case ViewHistory:
 		m.nav.Title = "History"
+		tree = m.history
 	}
-	return m.frame.Render(m.nav.View() + "\n" + m.status.View())
+	return m.frame.Render("\n" +
+		m.nav.View() +
+		"\n" +
+		tree.View() +
+		"\n" +
+		m.status.View())
 }
 
 type errMsg error
@@ -153,18 +209,23 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.keys.ViewTasks):
 			m.State = ViewTasks
+			m.status.Message = fmt.Sprintf("%d Tasks", len(m.Tasks))
 			return m, nil
 		case key.Matches(msg, m.keys.ViewProjects):
 			m.State = ViewProjects
+			m.status.Message = fmt.Sprintf("%d Projects", len(m.projects.Items))
 			return m, nil
 		case key.Matches(msg, m.keys.ViewContexts):
 			m.State = ViewContexts
+			m.status.Message = fmt.Sprintf("%d Contexts", len(m.contexts.Items))
 			return m, nil
 		case key.Matches(msg, m.keys.ViewTags):
 			m.State = ViewTags
+			m.status.Message = fmt.Sprintf("%d Tags", len(m.tags.Items))
 			return m, nil
 		case key.Matches(msg, m.keys.ViewHistory):
 			m.State = ViewHistory
+			m.status.Message = fmt.Sprintf("%d History items", len(m.history.Items))
 			return m, nil
 		}
 	}

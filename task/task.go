@@ -2,6 +2,7 @@ package task
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -49,4 +50,50 @@ func (j *ISO8601) UnmarshalJSON(b []byte) error {
 
 func (j ISO8601) MarshalJSON() ([]byte, error) {
 	return json.Marshal(time.Time(j))
+}
+
+func (t Task) Key() string {
+	return t.UUID
+}
+
+func (t Task) Children() []string {
+	return t.Depends
+}
+
+func (t Task) Desc(name string) string {
+	switch name {
+	case "due":
+		if time.Time(t.Due).IsZero() {
+			return ""
+		}
+		return fmt.Sprintf("  %s", time.Time(t.Due).Format("2 Jan"))
+	case "tags":
+		if len(t.Tags) == 0 {
+			return ""
+		}
+		return "  " + strings.Join(t.Tags, " ")
+	case "uuid":
+		return t.UUID[:8]
+	case "id":
+		return fmt.Sprintf("%d", t.ID)
+	case "project":
+		return t.Project
+	case "description":
+		return t.Description
+	}
+	return ""
+}
+
+type StringItem string
+
+func (t StringItem) Key() string {
+	return string(t)
+}
+
+func (t StringItem) Children() []string {
+	return []string{}
+}
+
+func (t StringItem) Desc(name string) string {
+	return string(t)
 }

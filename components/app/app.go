@@ -37,6 +37,7 @@ type Model struct {
 	Width  int
 	Height int
 
+	// One context
 	layout ly.Model
 }
 
@@ -49,7 +50,34 @@ func New() (m Model) {
 		layout: ly.New(),
 	}
 	m.LoadRc()
+
+	// Tasks
 	m.layout.LoadTasks(m.Context, m.Filters)
+
+	// Contexts
+	contexts := []string{}
+	for k := range m.Contexts {
+		contexts = append(contexts, k)
+	}
+	m.layout.LoadContexts(contexts)
+
+	// Projects
+	projects := []string{}
+	for k := range m.Projects {
+		projects = append(projects, k)
+	}
+	m.layout.LoadProjects(projects)
+
+	// Tags
+	tags := []string{}
+	for _, k := range m.Tags {
+		tags = append(tags, k)
+	}
+	m.layout.LoadTags(tags)
+
+	// History
+	m.layout.LoadHistory([]string{})
+
 	return m
 }
 
