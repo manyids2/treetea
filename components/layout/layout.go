@@ -169,6 +169,8 @@ func (m Model) viewNav() string {
 		name = m.Context
 		desc = m.Filters.Read
 	case ViewFilter:
+		// TODO: handle properly for each state
+		name = m.Context
 		desc = m.filter.View()
 	case ViewSave:
 		name = m.save.View()
@@ -209,6 +211,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.Context = context
 			_, filters := m.contexts.Items.Get(context)
 			m.Filters = tw.Filters{Read: filters.Desc("read"), Write: filters.Desc("write")}
+			m.State = ViewTasks
 			m.LoadTasks(m.Context, m.Filters)
 			// NOTE: Not changing tw context
 			// xn.SetContext(context)
@@ -229,9 +232,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				m.filter.SetValue(m.Filters.Read)
 				m.filter.Placeholder = m.Filters.Read
 				m.State = ViewTasks
+				m.tree = m.tasks
 			case key.Matches(msg, m.keys.Accept):
 				m.Filters.Read = m.filter.Value()
 				m.State = ViewTasks
+				m.tree = m.tasks
 				m.LoadTasks(m.Context, m.Filters)
 			}
 		}
@@ -243,10 +248,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			switch {
 			case key.Matches(msg, m.keys.Cancel):
 				m.State = ViewTasks
+				m.tree = m.tasks
 			case key.Matches(msg, m.keys.Accept):
 				xn.SaveContext(m.save.Value(), m.Filters.Read)
 				m.Context = m.save.Value()
 				m.State = ViewTasks
+				m.tree = m.tasks
 				return m, func() tea.Msg { return ReloadRcMsg("") }
 			}
 		}
@@ -285,6 +292,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				return m, nil
 			case key.Matches(msg, m.keys.Filter):
 				m.State = ViewFilter
+				m.tree = m.tasks
 				m.filter.Placeholder = m.Filters.Read + " "
 				m.filter.SetValue(m.Filters.Read + " ")
 				m.filter.Focus()
