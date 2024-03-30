@@ -27,6 +27,14 @@ const (
 	ViewSave
 )
 
+const (
+	TreeTasks = iota
+	TreeContexts
+	TreeProjects
+	TreeTags
+	TreeHistory
+)
+
 type Model struct {
 	// Essential
 	Width  int
@@ -44,9 +52,6 @@ type Model struct {
 	projects tr.Model
 	tags     tr.Model
 	history  tr.Model
-
-	// Current tree
-	tree tr.Model
 
 	// Filter
 	filter textinput.Model
@@ -77,7 +82,6 @@ func New() (m Model) {
 		filter: textinput.New(),
 		save:   textinput.New(),
 	}
-	m.tree = m.tasks
 	m.filter.Prompt = ""
 	m.filter.Placeholder = ""
 	m.filter.SetValue("")
@@ -86,6 +90,28 @@ func New() (m Model) {
 	m.save.Placeholder = ""
 	m.save.SetValue("")
 	return m
+}
+
+func (m Model) tree() *tr.Model {
+	switch m.State {
+	case ViewTasks:
+		return &m.tasks
+	case ViewProjects:
+		return &m.projects
+	case ViewContexts:
+		return &m.contexts
+	case ViewTags:
+		return &m.tags
+	case ViewHistory:
+		return &m.history
+
+	// TODO: There are really not in the same class as the others
+	case ViewFilter:
+		return &m.tasks
+	case ViewSave:
+		return &m.contexts
+	}
+	return &m.tasks
 }
 
 func (m Model) Init() tea.Cmd {
@@ -119,7 +145,6 @@ func (m *Model) LoadTasks(context string, filters tw.Filters) {
 
 	// Update UI
 	m.State = ViewTasks
-	m.tree = m.tasks
 }
 
 func (m *Model) LoadContexts(contexts map[string]tw.Filters) {
@@ -159,8 +184,8 @@ func (m *Model) SetFrame(width, height int) {
 	m.frame = lg.NewStyle().Height(height).Width(width)
 }
 
-func (m Model) viewNav() string {
-	name := m.tree.Name
+func (m Model) viewNav(tree *tr.Model) string {
+	name := tree.Name
 	desc := ""
 
 	// Change only in case of tasks
@@ -185,9 +210,9 @@ func (m Model) View() string {
 	}
 
 	return m.frame.Render("\n" +
-		m.viewNav() +
+		m.viewNav(m.tree()) +
 		"\n" +
-		m.tree.View())
+		m.tree().View())
 }
 
 type errMsg error
@@ -232,11 +257,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				m.filter.SetValue(m.Filters.Read)
 				m.filter.Placeholder = m.Filters.Read
 				m.State = ViewTasks
-				m.tree = m.tasks
 			case key.Matches(msg, m.keys.Accept):
 				m.Filters.Read = m.filter.Value()
 				m.State = ViewTasks
-				m.tree = m.tasks
 				m.LoadTasks(m.Context, m.Filters)
 			}
 		}
@@ -248,12 +271,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			switch {
 			case key.Matches(msg, m.keys.Cancel):
 				m.State = ViewTasks
-				m.tree = m.tasks
 			case key.Matches(msg, m.keys.Accept):
 				xn.SaveContext(m.save.Value(), m.Filters.Read)
 				m.Context = m.save.Value()
 				m.State = ViewTasks
-				m.tree = m.tasks
 				return m, func() tea.Msg { return ReloadRcMsg("") }
 			}
 		}
@@ -272,27 +293,21 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			// Change view
 			case key.Matches(msg, m.keys.ViewTasks):
 				m.State = ViewTasks
-				m.tree = m.tasks
 				return m, nil
 			case key.Matches(msg, m.keys.ViewContexts):
 				m.State = ViewContexts
-				m.tree = m.contexts
 				return m, nil
 			case key.Matches(msg, m.keys.ViewHistory):
 				m.State = ViewHistory
-				m.tree = m.history
 				return m, nil
 			case key.Matches(msg, m.keys.ViewProjects):
 				m.State = ViewProjects
-				m.tree = m.projects
 				return m, nil
 			case key.Matches(msg, m.keys.ViewTags):
 				m.State = ViewTags
-				m.tree = m.tags
 				return m, nil
 			case key.Matches(msg, m.keys.Filter):
 				m.State = ViewFilter
-				m.tree = m.tasks
 				m.filter.Placeholder = m.Filters.Read + " "
 				m.filter.SetValue(m.Filters.Read + " ")
 				m.filter.Focus()
@@ -303,9 +318,45 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				m.save.SetValue(m.Context)
 				m.save.Focus()
 				return m, nil
+
+			// Toggle
+			case key.Matches(msg, keys.ShowTags):
+				m.tasks.ToggleExtra("tags")
+				return m, nil
+			case key.Matches(msg, keys.ShowDue):
+				m.tasks.ToggleExtra("due")
+				return m, nil
+			case key.Matches(msg, keys.ShowID):
+				m.tasks.ToggleExtra("id")
+				return m, nil
+			case key.Matches(msg, keys.ShowUUID):
+				m.tasks.ToggleExtra("uuid")
+				return m, nil
+			case key.Matches(msg, keys.ShowProject):
+				m.tasks.ToggleExtra("project")
+				return m, nil
 			}
 		}
-		m.tree, cmd = m.tree.Update(msg) // Delegate to current tree
+
+		// TODO: How to make this work with &tree?
+		switch m.State {
+		case ViewTasks:
+			m.tasks, cmd = m.tasks.Update(msg)
+		case ViewProjects:
+			m.projects, cmd = m.projects.Update(msg)
+		case ViewContexts:
+			m.contexts, cmd = m.contexts.Update(msg)
+		case ViewTags:
+			m.tags, cmd = m.tags.Update(msg)
+		case ViewHistory:
+			m.history, cmd = m.history.Update(msg)
+
+		// TODO: There are really not in the same class as the others
+		case ViewFilter:
+			m.tasks, cmd = m.tasks.Update(msg)
+		case ViewSave:
+			m.tasks, cmd = m.tasks.Update(msg)
+		}
 	}
 
 	return m, cmd

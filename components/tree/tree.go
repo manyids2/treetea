@@ -55,7 +55,7 @@ type Model struct {
 	Parents  map[string]string // Reverse tree
 	Children []string          // Top level items
 	Order    []string          // Current viewing order
-	Extra    string            // Extra info to show for each item
+	Extra    []string          // Extra info to show for each item
 	Active   string            // Currently active task
 	Selected []string          // Selected tasks
 
@@ -207,17 +207,28 @@ func (m *Model) LoadList(items Items) {
 }
 
 func (m Model) viewItem(id string) string {
+	// TODO: Really should be a map, we access this many times
 	_, n := m.Items.Get(id)
+
+	// Status and description
 	style := lg.NewStyle()
 	current := m.Order[m.Current] == id
 	if current {
 		style = style.Italic(true)
 	}
-
 	text := style.Render(fmt.Sprintf("%s %s", n.Desc("icon"), n.Desc("description")))
 	indent := strings.Repeat("  ", m.Levels[id])
 
-	return fmt.Sprintf("%s%s\n", indent, text)
+	// Extra
+	extra := ""
+	style = lg.NewStyle()
+	style = style.Italic(true)
+	for _, k := range m.Extra {
+		extra += style.Render(fmt.Sprintf(" %s ", n.Desc((k))))
+
+	}
+
+	return fmt.Sprintf("%s%s  %s\n", indent, text, extra)
 }
 
 func (m Model) View() string {
@@ -267,6 +278,22 @@ func accept(m Model) tea.Cmd {
 		}
 		return AcceptMsg(m.Selected)
 	}
+}
+
+func (m *Model) ToggleExtra(extra string) {
+	new_extra := []string{}
+	found := false
+	for _, k := range m.Extra {
+		if !(k == extra) {
+			new_extra = append(new_extra, k)
+		} else {
+			found = true
+		}
+	}
+	if !found {
+		new_extra = append(new_extra, extra)
+	}
+	m.Extra = new_extra
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {

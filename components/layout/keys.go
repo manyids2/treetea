@@ -15,6 +15,13 @@ type keyMap struct {
 	Accept key.Binding
 	Cancel key.Binding
 	Save   key.Binding
+
+	ShowID      key.Binding
+	ShowUUID    key.Binding
+	ShowDue     key.Binding
+	ShowTags    key.Binding
+	ShowProject key.Binding
+	ShowContext key.Binding
 }
 
 var keys = keyMap{
@@ -59,5 +66,31 @@ var keys = keyMap{
 	Save: key.NewBinding(
 		key.WithKeys("ctrl+s"),
 		key.WithHelp("ctrl+s", "save"),
+	),
+
+	// Toggles
+	ShowID: key.NewBinding(
+		key.WithKeys("I"),
+		key.WithHelp("I", "show id"),
+	),
+	ShowUUID: key.NewBinding(
+		key.WithKeys("U"),
+		key.WithHelp("U", "show uuid"),
+	),
+	ShowDue: key.NewBinding(
+		key.WithKeys("D"),
+		key.WithHelp("D", "show due"),
+	),
+	ShowTags: key.NewBinding(
+		key.WithKeys("T"),
+		key.WithHelp("T", "show tags"),
+	),
+	ShowProject: key.NewBinding(
+		key.WithKeys("P"),
+		key.WithHelp("P", "show project"),
+	),
+	ShowContext: key.NewBinding( // TODO: needs to be implemented
+		key.WithKeys("C"),
+		key.WithHelp("C", "show context"),
 	),
 }
