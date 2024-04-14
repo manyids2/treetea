@@ -34,10 +34,13 @@ type Model struct {
 }
 
 func New(projects []task.Project, contexts []task.Context) Model {
-	apps := make([]*app.Model, 3)
-	for i, p := range projects[:3] {
+	N := 3
+	apps := make([]*app.Model, N)
+	for i := range projects[:N] {
 		a := app.New()
-		a.Project = p
+		a.Project = projects[i]
+		a.Context = contexts[i]
+		a.LoadTasks()
 		apps[i] = &a
 	}
 

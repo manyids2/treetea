@@ -5,16 +5,12 @@ import (
 	"strings"
 )
 
-type Key any
-
-var zeroKey Key
-
 type Item interface {
-	Key() Key
-	Children() []Key
+	Key() string
+	Children() []string
 }
 
-func GetIndex(key Key, items *[]Item) int {
+func GetIndex(key string, items *[]Item) int {
 	for i, item := range *items {
 		if item.Key() == key {
 			return i
@@ -26,9 +22,9 @@ func GetIndex(key Key, items *[]Item) int {
 type Tree struct {
 	Order []int // Order to display
 
-	Keys    []Key // Keys to search in
-	Levels  []int // Nesting level for indent
-	Parents []Key // To walk from leaf to root
+	Keys    []string // Keys to search in
+	Levels  []int    // Nesting level for indent
+	Parents []string // To walk from leaf to root
 
 	total   int // Total number of items
 	current int // Index of current item
@@ -81,9 +77,9 @@ func (m *Tree) indexOrder(i int, items *[]Item) {
 
 func (m *Tree) Reset(items *[]Item) {
 	m.total = len(*items)
-	m.Keys = make([]Key, m.total)
+	m.Keys = make([]string, m.total)
 	m.Levels = make([]int, m.total)
-	m.Parents = make([]Key, m.total)
+	m.Parents = make([]string, m.total)
 	m.Order = make([]int, 0) // Since we append
 
 	// Index the keys
@@ -102,7 +98,7 @@ func (m *Tree) Reset(items *[]Item) {
 
 	// Recursively index levels and order
 	for i := range *items {
-		if m.Parents[i] == zeroKey {
+		if m.Parents[i] == "" {
 			m.indexLevels(i, 0, items)
 			m.indexOrder(i, items)
 		}
@@ -114,11 +110,11 @@ func Render(m *Tree, items *[]Item) string {
 	for i, v := range m.Order {
 		level := m.Levels[v]
 		indent := strings.Repeat("  ", level)
-		ind := "-> "
+		ind := " "
 		if i == m.current {
-			ind = "==>"
+			ind = ">"
 		}
-		out += fmt.Sprintf("%d %s %d: %s %v\n", i, ind, v, indent, (*items)[v].Key())
+		out += fmt.Sprintf("%s %s %s\n", ind, indent, (*items)[v])
 	}
 	return out
 }

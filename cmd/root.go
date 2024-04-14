@@ -50,6 +50,8 @@ var rootCmd = &cobra.Command{
 		}
 		// TODO: Parse taskrc to get additional contexts if present
 
+		// TODO: Assuming projects and contexts are corresponding ( p[i] => c[i] )
+
 		// Start the actual program
 		if _, err := tea.NewProgram(ui.New(projects, contexts)).Run(); err != nil {
 			fmt.Println("Error running program:", err)

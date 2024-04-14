@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 func Output(c *exec.Cmd) ([]byte, []byte, error) {
@@ -48,21 +48,21 @@ func ReadProjects(path string) ([]Project, error) {
 	return projects, nil
 }
 
-func ReadContexts(path string) ([]Context, error) {
+func ReadContexts(path string) (contexts []Context, err error) {
 	out, _ := os.ReadFile(path)
-	var contexts []Context
-	if err := json.Unmarshal(out, &contexts); err != nil {
+	if err = json.Unmarshal(out, &contexts); err != nil {
 		return []Context{}, err
 	}
 	return contexts, nil
 }
 
-func RunCmd() {
-	cmd := exec.Command("task")
-
-	// Get json formatted array of tasks, return empty if error
-	stdout, stderr, err := Output(cmd)
-	fmt.Println("Stdout:\n", string(stdout))
-	fmt.Println("Stderr:\n", string(stderr))
-	fmt.Println(err)
+func List(filters string) (tasks []Task, err error) {
+	args := strings.Split(filters, " ")
+	args = append(args, "export")
+	cmd := exec.Command("task", args...)
+	stdout, _, err := Output(cmd) // Ignore stderr
+	if err := json.Unmarshal(stdout, &tasks); err != nil {
+		return []Task{}, err
+	}
+	return tasks, nil
 }
