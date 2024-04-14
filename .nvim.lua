@@ -19,7 +19,7 @@ ls.add_snippets("go", {
 			"type Model struct {",
 			"}",
 			"",
-			"func NewModel() Model {",
+			"func New() Model {",
 			"	return Model{}",
 			"}",
 			"",

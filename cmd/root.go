@@ -5,8 +5,9 @@ import (
 	"os"
 	"os/exec"
 
-	// tea "github.com/charmbracelet/bubbletea"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/manyids2/tasktea/task"
+	"github.com/manyids2/tasktea/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -34,6 +35,10 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Start the actual program
+		if _, err := tea.NewProgram(ui.New()).Run(); err != nil {
+			fmt.Println("Error running program:", err)
+			os.Exit(1)
+		}
 
 	},
 }
