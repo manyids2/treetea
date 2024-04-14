@@ -1,9 +1,9 @@
 package ui
 
 import (
-	"fmt"
-
 	tea "github.com/charmbracelet/bubbletea"
+	lg "github.com/charmbracelet/lipgloss"
+	"github.com/manyids2/tasktea/ui/app"
 )
 
 type Model struct {
@@ -11,10 +11,23 @@ type Model struct {
 	quitting  bool
 	width     int
 	height    int
+	focus     int
+
+	apps []*app.Model
 }
 
 func New() Model {
-	return Model{}
+	a := app.New()
+	a.Project.Name = "Project a"
+	a.Focus = true
+
+	b := app.New()
+	b.Project.Name = "Project b"
+
+	return Model{
+		apps:  []*app.Model{&a, &b},
+		focus: 0,
+	}
 }
 
 func (m Model) Init() tea.Cmd {
@@ -25,19 +38,15 @@ func (m Model) View() string {
 	if m.quitting {
 		return "Bye!\n"
 	}
-
-	var mode string
-	if m.altscreen {
-		mode = " altscreen mode "
-	} else {
-		mode = " inline mode "
+	view := ""
+	for _, a := range m.apps {
+		view = lg.JoinHorizontal(lg.Top, view, a.View())
 	}
-	mode = fmt.Sprintf("%s [ %d, %d ]", mode, m.width, m.height)
-
-	return mode
+	return view
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
@@ -46,16 +55,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c", "esc":
 			m.quitting = true
 			return m, tea.Quit
-		case " ":
-			var cmd tea.Cmd
-			if m.altscreen {
-				cmd = tea.ExitAltScreen
-			} else {
-				cmd = tea.EnterAltScreen
-			}
-			m.altscreen = !m.altscreen
-			return m, cmd
+		case "tab":
+			m.apps[m.focus].Focus = false
+			m.focus = (m.focus + 1) % len(m.apps)
+			m.apps[m.focus].Focus = true
+			return m, nil
 		}
 	}
-	return m, nil
+	ma, cmd := m.apps[m.focus].Update(msg)
+	m.apps[m.focus] = &ma
+	return m, cmd
 }
