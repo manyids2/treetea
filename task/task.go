@@ -78,3 +78,22 @@ func (t Task) Children() []string {
 func (t Task) String() string {
 	return fmt.Sprintf("%s %s", MARKERS["icon"][t.Status], t.Description)
 }
+
+type Project struct {
+	Name        string   `json:"name"`
+	Subprojects []string `json:"subprojects"`
+}
+
+func (p Project) Key() string {
+	return p.Name
+}
+
+func (p Project) Children() []string {
+	return p.Subprojects
+}
+
+type Context struct {
+	Name  string `json:"name"`
+	Read  string `json:"read"`
+	Write string `json:"write"`
+}

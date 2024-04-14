@@ -39,3 +39,7 @@ data.location=/home/x/fd/code/go/tasktea/test/data
 #include solarized-light-256.theme
 #include no-color.theme
 
+context.a.read=project:a
+context.a.write=project:a
+context.b.read=project:b
+context.b.write=project:b

@@ -2,6 +2,7 @@ package task
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -36,6 +37,24 @@ func FileExists(taskrc string) bool {
 		return false
 	}
 	return true
+}
+
+func ReadProjects(path string) ([]Project, error) {
+	out, _ := os.ReadFile(path)
+	var projects []Project
+	if err := json.Unmarshal(out, &projects); err != nil {
+		return []Project{}, err
+	}
+	return projects, nil
+}
+
+func ReadContexts(path string) ([]Context, error) {
+	out, _ := os.ReadFile(path)
+	var contexts []Context
+	if err := json.Unmarshal(out, &contexts); err != nil {
+		return []Context{}, err
+	}
+	return contexts, nil
 }
 
 func RunCmd() {

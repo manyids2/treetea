@@ -3,8 +3,23 @@ package ui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	lg "github.com/charmbracelet/lipgloss"
+	"github.com/manyids2/tasktea/task"
 	"github.com/manyids2/tasktea/ui/app"
 )
+
+type Styles struct {
+	Frame lg.Style
+	Focus lg.Style
+	Blur  lg.Style
+}
+
+func DefaultStyles() Styles {
+	return Styles{
+		Focus: lg.NewStyle().BorderLeft(true).BorderStyle(lg.NormalBorder()),
+		Blur:  lg.NewStyle().BorderLeft(true).BorderStyle(lg.HiddenBorder()),
+		Frame: lg.NewStyle().Width(40).Height(30),
+	}
+}
 
 type Model struct {
 	altscreen bool
@@ -13,20 +28,23 @@ type Model struct {
 	height    int
 	focus     int
 
+	styles Styles
+
 	apps []*app.Model
 }
 
-func New() Model {
-	a := app.New()
-	a.Project.Name = "Project a"
-	a.Focus = true
-
-	b := app.New()
-	b.Project.Name = "Project b"
+func New(projects []task.Project, contexts []task.Context) Model {
+	apps := make([]*app.Model, 3)
+	for i, p := range projects[:3] {
+		a := app.New()
+		a.Project = p
+		apps[i] = &a
+	}
 
 	return Model{
-		apps:  []*app.Model{&a, &b},
-		focus: 0,
+		apps:   apps,
+		styles: DefaultStyles(),
+		focus:  0,
 	}
 }
 
@@ -39,8 +57,16 @@ func (m Model) View() string {
 		return "Bye!\n"
 	}
 	view := ""
-	for _, a := range m.apps {
-		view = lg.JoinHorizontal(lg.Top, view, a.View())
+	var style lg.Style
+	for i, a := range m.apps {
+		switch m.focus == i {
+		case true:
+			style = m.styles.Focus
+		case false:
+			style = m.styles.Blur
+		}
+		view = lg.JoinHorizontal(lg.Top, view,
+			style.Render(m.styles.Frame.Render(a.View())))
 	}
 	return view
 }
@@ -56,9 +82,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.quitting = true
 			return m, tea.Quit
 		case "tab":
-			m.apps[m.focus].Focus = false
 			m.focus = (m.focus + 1) % len(m.apps)
-			m.apps[m.focus].Focus = true
 			return m, nil
 		}
 	}

@@ -16,7 +16,7 @@ var rootCmd = &cobra.Command{
 	Short: "Tools for taskwarrior",
 	Long:  `Like a standalone taskwiki`,
 	Run: func(cmd *cobra.Command, args []string) {
-		_, taskrc := task.GetEnv()
+		taskdata, taskrc := task.GetEnv()
 		if !task.FileExists(taskrc) {
 			fmt.Println("Initializing taskrc:", taskrc)
 
@@ -34,12 +34,27 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
+		// Read projects
+		projects, err := task.ReadProjects(taskdata + "/projects.data")
+		if err != nil {
+			fmt.Println("Error reading projects:", err)
+			os.Exit(1)
+		}
+		// TODO: Parse `task _projects` to get additional projects if present
+
+		// Read contexts
+		contexts, err := task.ReadContexts(taskdata + "/contexts.data")
+		if err != nil {
+			fmt.Println("Error reading contexts:", err)
+			os.Exit(1)
+		}
+		// TODO: Parse taskrc to get additional contexts if present
+
 		// Start the actual program
-		if _, err := tea.NewProgram(ui.New()).Run(); err != nil {
+		if _, err := tea.NewProgram(ui.New(projects, contexts)).Run(); err != nil {
 			fmt.Println("Error running program:", err)
 			os.Exit(1)
 		}
-
 	},
 }
 

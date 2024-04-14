@@ -13,7 +13,7 @@ func (n node) Key() Key {
 	return n.key
 }
 
-func (n node) Children() []Key {
+func (n node) Childs() []Key {
 	return n.children
 }
 
