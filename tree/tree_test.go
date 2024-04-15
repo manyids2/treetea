@@ -5,24 +5,28 @@ import (
 )
 
 type node struct {
-	key      Key
-	children []Key
+	key      string
+	children []string
 }
 
-func (n node) Key() Key {
+func (n node) string() string {
 	return n.key
 }
 
-func (n node) Childs() []Key {
+func (n node) Key() string {
+	return n.key
+}
+
+func (n node) Children() []string {
 	return n.children
 }
 
 func TestRender(t *testing.T) {
 	// Immutable items
 	items := []Item{
-		node{"a", []Key{}},
-		node{"b", []Key{}},
-		node{"c", []Key{}},
+		node{"a", []string{}},
+		node{"b", []string{}},
+		node{"c", []string{}},
 	}
 	total := len(items)
 
@@ -47,9 +51,9 @@ func TestRender(t *testing.T) {
 func TestLevels(t *testing.T) {
 	// Immutable items
 	items := []Item{
-		node{"b", []Key{}},
-		node{"a", []Key{"b"}},
-		node{"c", []Key{}},
+		node{"b", []string{}},
+		node{"a", []string{"b"}},
+		node{"c", []string{}},
 	}
 	total := len(items)
 
@@ -74,8 +78,8 @@ func TestLevels(t *testing.T) {
 func TestMissingChildren(t *testing.T) {
 	// Immutable items
 	items := []Item{
-		node{"a", []Key{"b"}},
-		node{"c", []Key{"d"}},
+		node{"a", []string{"b"}},
+		node{"c", []string{"d"}},
 	}
 	total := len(items)
 
@@ -99,9 +103,9 @@ func TestMissingChildren(t *testing.T) {
 func TestCurrent(t *testing.T) {
 	// Immutable items
 	items := []Item{
-		node{"b", []Key{}},
-		node{"a", []Key{"b"}},
-		node{"c", []Key{}},
+		node{"b", []string{}},
+		node{"a", []string{"b"}},
+		node{"c", []string{}},
 	}
 
 	// Default current
