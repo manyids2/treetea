@@ -97,3 +97,21 @@ type Context struct {
 	Read  string `json:"read"`
 	Write string `json:"write"`
 }
+
+func (c Context) Children() []string {
+	return []string{}
+}
+
+func (c Context) Key() string {
+	return c.Name
+}
+
+type Tag string
+
+func (c Tag) Children() []string {
+	return []string{}
+}
+
+func (c Tag) Key() string {
+	return string(c)
+}
